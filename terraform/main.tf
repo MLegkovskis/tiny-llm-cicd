@@ -23,13 +23,15 @@ resource "google_service_account" "service" {
 resource "google_cloud_run_service" "tiny_llm_service" {
   name     = "tiny-llm-service"
   location = "europe-west2"
+
   template {
     spec {
       service_account_name = google_service_account.service.email
       containers {
-        image = "europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app"
+        # Hardcoded Docker image reference
+        image = "europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest"
         ports {
-          name          = "http1"
+          name           = "http1"
           container_port = 8000
         }
       }
@@ -40,11 +42,11 @@ resource "google_cloud_run_service" "tiny_llm_service" {
 
 # Allow unauthenticated
 resource "google_cloud_run_service_iam_member" "noauth" {
-  location        = "europe-west2"
-  project         = "aiops-bone-zone"
-  service         = google_cloud_run_service.tiny_llm_service.name
-  role            = "roles/run.invoker"
-  member          = "allUsers"
+  location = "europe-west2"
+  project  = "aiops-bone-zone"
+  service  = google_cloud_run_service.tiny_llm_service.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
 }
 
 output "cloud_run_url" {

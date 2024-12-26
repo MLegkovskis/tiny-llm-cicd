@@ -17,7 +17,7 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          # This is your service account JSON
+          # Only secret you need is the service account JSON
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Google Cloud SDK
@@ -25,37 +25,34 @@ jobs:
         with:
           version: 'latest'
       
-      # ---- The important step: configure Docker to push to Artifact Registry
       - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
+        run: gcloud auth configure-docker europe-west2-docker.pkg.dev
 
+      # Build the Docker image, tagging it with your hardcoded path
       - name: Build Docker image
         run: |
           docker build -t \
-            ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest \
+            europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest \
             -f docker/Dockerfile .
 
+      # Push that same image
       - name: Push Docker image
         run: |
           docker push \
-            ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest
+            europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
 
+      # Terraform Init & Apply (no -var references)
       - name: Terraform Init & Apply
         working-directory: ./terraform
         run: |
           terraform init
-          terraform apply -auto-approve \
-            -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var "region=${{ secrets.GCP_REGION }}" \
-            -var "image=${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest"
+          terraform apply -auto-approve
 
       - name: Wait 10 minutes for ephemeral demo
         run: sleep 600
 
+      # Terraform Destroy (again, no -var references)
       - name: Terraform Destroy
         working-directory: ./terraform
         run: |
-          terraform destroy -auto-approve \
-            -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var "region=${{ secrets.GCP_REGION }}" \
-            -var "image=${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest"
+          terraform destroy -auto-approve
