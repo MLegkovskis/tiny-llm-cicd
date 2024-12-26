@@ -3,14 +3,53 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Tiny LLM Chatbot</title>
+    <title>LLM Chat Interface</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      #chat-container {
+        width: 400px;
+        max-width: 100%;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 10px;
+        height: 400px;
+        overflow-y: auto;
+      }
+      .message {
+        margin: 5px 0;
+        line-height: 1.4;
+      }
+      .user-msg {
+        font-weight: bold;
+        color: #0084ff;
+      }
+      .bot-msg {
+        color: #333;
+      }
+      #input-area {
+        display: flex;
+        gap: 8px;
+      }
+      #userPrompt {
+        flex: 1;
+        padding: 6px;
+      }
+      button {
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+    </style>
   </head>
   <body>
-    <h1>Tiny LLM Chatbot Demo</h1>
-    <textarea id="userPrompt" rows="4" cols="50" placeholder="Type your message..."></textarea>
-    <br />
-    <button onclick="sendPrompt()">Generate</button>
-    <pre id="responseArea"></pre>
+    <h1>Tiny LLM Chat</h1>
+    <div id="chat-container"></div>
+    <div id="input-area">
+      <input type="text" id="userPrompt" placeholder="Type your message..." />
+      <button onclick="sendPrompt()">Send</button>
+    </div>
 
     <script src="script.js"></script>
   </body>
