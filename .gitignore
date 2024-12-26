@@ -1,0 +1,15 @@
+# .gitignore
+
+# Python
+__pycache__/
+*.pyc
+
+# Model files (if you ever switch to bigger ones):
+model/*.bin
+model/*.pt
+model/*.h5
+
+# Terraform
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup

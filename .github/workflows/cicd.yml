@@ -1,0 +1,55 @@
+# .github/workflows/cicd.yml
+
+name: CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          lfs: true  # in case your tiny model is still large
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          export_default_credentials: true
+
+      - name: Build Docker image
+        run: |
+          docker build -t \
+            ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest \
+            -f docker/Dockerfile .
+
+      - name: Push Docker image
+        run: |
+          docker push \
+            ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest
+
+      - name: Terraform Init & Apply
+        working-directory: ./terraform
+        run: |
+          terraform init
+          terraform apply -auto-approve \
+            -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var "region=${{ secrets.GCP_REGION }}" \
+            -var "image=${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest"
+
+      - name: Wait 10 minutes for ephemeral demo
+        run: sleep 600
+
+      - name: Terraform Destroy
+        working-directory: ./terraform
+        run: |
+          terraform destroy -auto-approve \
+            -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var "region=${{ secrets.GCP_REGION }}" \
+            -var "image=${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest"
