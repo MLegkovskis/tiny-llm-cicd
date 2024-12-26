@@ -1,12 +1,13 @@
 // frontend/script.js
+
 async function sendPrompt() {
     const chatContainer = document.getElementById("chat-container");
     const userInputField = document.getElementById("userPrompt");
     const userText = userInputField.value.trim();
   
-    if (!userText) return; // don't send empty messages
+    if (!userText) return; // ignore empty input
   
-    // Add user's message to chat
+    // Create a user message in the chat
     const userMsgDiv = document.createElement("div");
     userMsgDiv.classList.add("message", "user-msg");
     userMsgDiv.textContent = "User: " + userText;
@@ -15,7 +16,7 @@ async function sendPrompt() {
     // Clear the input
     userInputField.value = "";
   
-    // Show a "Loading..." or some placeholder
+    // Placeholder for bot's response
     const botMsgDiv = document.createElement("div");
     botMsgDiv.classList.add("message", "bot-msg");
     botMsgDiv.textContent = "Bot: [Thinking...]";
@@ -25,7 +26,7 @@ async function sendPrompt() {
     chatContainer.scrollTop = chatContainer.scrollHeight;
   
     try {
-      // Call the /generate endpoint
+      // Call your Flask /generate endpoint
       const res = await fetch("/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -33,7 +34,7 @@ async function sendPrompt() {
       });
       const data = await res.json();
   
-      // Update bot's message
+      // Display the bot's response
       botMsgDiv.textContent = "Bot: " + (data.response || "(No response)");
     } catch (err) {
       console.error(err);
