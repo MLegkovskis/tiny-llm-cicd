@@ -24,17 +24,20 @@ jobs:
         with:
           version: 'latest'
 
+      # 1) Build with the SAME full path you plan to push:
       - name: Build Docker image
         run: |
           docker build -t \
-            europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app:latest \
+            europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest \
             -f docker/Dockerfile .
 
+      # 2) Push that exact same name:
       - name: Push Docker image
         run: |
           docker push \
-            ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest
+            europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
 
+      # 3) Use that same image in Terraform:
       - name: Terraform Init & Apply
         working-directory: ./terraform
         run: |
@@ -42,7 +45,7 @@ jobs:
           terraform apply -auto-approve \
             -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var "region=${{ secrets.GCP_REGION }}" \
-            -var "image=${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest"
+            -var "image=europe-west2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest"
 
       - name: Wait 10 minutes for ephemeral demo
         run: sleep 600
@@ -53,4 +56,4 @@ jobs:
           terraform destroy -auto-approve \
             -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var "region=${{ secrets.GCP_REGION }}" \
-            -var "image=${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest"
+            -var "image=europe-west2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest"
