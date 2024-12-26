@@ -4,7 +4,7 @@ name: CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
 
 jobs:
@@ -17,27 +17,29 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
+          # This is your service account JSON
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
           version: 'latest'
+      
+      # ---- The important step: configure Docker to push to Artifact Registry
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
 
-      # 1) Build with the SAME full path you plan to push:
       - name: Build Docker image
         run: |
           docker build -t \
-            europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest \
+            ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest \
             -f docker/Dockerfile .
 
-      # 2) Push that exact same name:
       - name: Push Docker image
         run: |
           docker push \
-            europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
+            ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest
 
-      # 3) Use that same image in Terraform:
       - name: Terraform Init & Apply
         working-directory: ./terraform
         run: |
@@ -45,7 +47,7 @@ jobs:
           terraform apply -auto-approve \
             -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var "region=${{ secrets.GCP_REGION }}" \
-            -var "image=europe-west2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest"
+            -var "image=${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest"
 
       - name: Wait 10 minutes for ephemeral demo
         run: sleep 600
@@ -56,4 +58,4 @@ jobs:
           terraform destroy -auto-approve \
             -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var "region=${{ secrets.GCP_REGION }}" \
-            -var "image=europe-west2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest"
+            -var "image=${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tiny-llm-app/tiny-llm-app:latest"
