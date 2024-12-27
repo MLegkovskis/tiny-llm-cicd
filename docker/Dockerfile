@@ -2,7 +2,7 @@
 
 # Use a prebuilt PyTorch image that already has Python + Torch installed.
 # This saves time vs installing Torch from scratch in python:3.9-slim.
-FROM pytorch/pytorch:2.0.1-cpu
+FROM pytorch/pytorch
 
 # Make a working directory
 WORKDIR /app
