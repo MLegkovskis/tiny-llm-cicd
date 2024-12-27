@@ -1,5 +1,3 @@
-# api/app.py
-
 import os
 from flask import Flask, request, jsonify, send_from_directory
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -16,12 +14,13 @@ def index():
 def frontend_static(filename):
     return send_from_directory(app.static_folder, filename)
 
-# Load system prompt
-with open(os.path.join(os.path.dirname(__file__), "system_prompt.txt"), "r") as f:
+# system_prompt is still loaded from /app/api/system_prompt.txt
+SYSTEM_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "system_prompt.txt")
+with open(SYSTEM_PROMPT_PATH, "r") as f:
     system_prompt = f.read().strip()
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "model")
-
+# Path to the model inside container
+MODEL_PATH = "/app/model"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
 model = AutoModelForCausalLM.from_pretrained(MODEL_PATH)
 
@@ -40,11 +39,10 @@ def generate_text():
             pad_token_id=tokenizer.eos_token_id
         )
 
-    # Slice out only the newly generated tokens
+    # Only decode newly generated tokens
     generated_ids = output[0][input_ids.shape[1]:]
     response_text = tokenizer.decode(generated_ids, skip_special_tokens=True)
 
-    # If the model repeats "Bot:", remove it
     if "Bot:" in response_text:
         response_text = response_text.split("Bot:", 1)[-1].strip()
 
