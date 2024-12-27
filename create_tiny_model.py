@@ -1,26 +1,30 @@
-# create_tiny_model.py
-
-from transformers import GPT2Config, GPT2LMHeadModel
 import os
+from transformers import GPT2Config, GPT2LMHeadModel, GPT2TokenizerFast
 
-# A super tiny config: 1 layer, 1 attention head, very small embedding dim
+# 1) Load a real GPT-2 tokenizer from Hugging Face
+tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+
+# Save the tokenizer to local "model/" so we can load it offline
+if not os.path.exists("model"):
+    os.makedirs("model")
+tokenizer.save_pretrained("model")
+
+# 2) Create a minimal GPT-2 config
+#    - Use tokenizer.vocab_size so model aligns with the actual GPT-2 vocab (~50257).
+#    - Use small layer/heads for a "tiny" random model.
 config = GPT2Config(
-    vocab_size=100,    # must match your tokenizer.json
-    n_positions=64,
-    n_ctx=64,
-    n_embd=16,
+    vocab_size=tokenizer.vocab_size,  # typically 50257 for GPT2
+    n_positions=256,  
+    n_ctx=256,
+    n_embd=16,  # extremely small embed dim
     n_layer=1,
     n_head=1
 )
 
-# Create the model with random weights
+# 3) Create a random GPT-2 model with that config
 model = GPT2LMHeadModel(config)
 
-# Ensure the model folder exists
-if not os.path.exists("model"):
-    os.makedirs("model")
-
-# Save the model to "model/" folder
+# 4) Save model weights into the same "model/" folder
 model.save_pretrained("model")
 
-print("Created a tiny GPT-like model in `model/` folder!")
+print("Finished creating a tiny GPT-2–style model + real GPT2 tokenizer in `model/` folder.")
