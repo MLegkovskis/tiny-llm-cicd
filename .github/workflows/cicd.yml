@@ -100,11 +100,7 @@ jobs:
 
       - name: Extract Model
         run: |
-          mkdir -p model
-          tar -xzf model.tar.gz -C ./  # this puts "model" under ./app
-          # We'll move it to a top-level "model" folder to be consistent.
-          mv app/model ./model
-          rm -rf app
+          tar -xzf model.tar.gz -C .
           ls -l ./model
 
       - name: Authenticate to Google Cloud
