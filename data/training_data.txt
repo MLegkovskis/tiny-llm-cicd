@@ -3,3 +3,98 @@ Tiny LLMs can still learn from small data!
 Transformers are fascinating.
 Ephemeral deployments are great for demos.
 We love DevOps and MLOps!
+Continuous integration is a core DevOps principle.
+GitHub Actions makes automation easier.
+Terraform provisions ephemeral cloud resources quickly.
+A tiny GPT-2 model won't produce perfect text, but it's fun to experiment.
+Always remember to handle secrets securely.
+Containerization helps isolate dependencies.
+Python is a versatile language for AI and DevOps.
+Cloud Run can handle container workloads serverlessly.
+Automated tests catch regressions early.
+Reviewing pull requests maintains code quality.
+This dataset is still too small to be very smart.
+Version control tracks every change.
+We can generate random text from minimal data.
+Small models deploy quickly and cheaply.
+I wonder what random text this mini model will generate today.
+DevOps culture emphasizes collaboration.
+MLOps extends DevOps principles to machine learning.
+Ephemeral environments let you test without cluttering production.
+Docker simplifies packaging of applications.
+GitHub Actions can build, test, and deploy your code automatically.
+Terraform code describes your infrastructure declaratively.
+A single-layer GPT-2 config is very lightweight.
+GPU acceleration speeds up training but increases costs.
+CPU-based inference is often enough for small models.
+Python scripts manage both data processing and deployment logic.
+Observability tools like Prometheus track metrics in real time.
+Helm charts package Kubernetes applications consistently.
+AWS, Azure, and GCP all offer serverless compute services.
+Minimizing container size speeds up CI/CD pipelines.
+Slack notifications keep the team informed of build status.
+Code linting tools detect style inconsistencies early.
+Black and isort format Python code automatically.
+Integrating checks into CI ensures consistent code quality.
+Even ephemeral demos require thoughtful security measures.
+IAM roles must be carefully restricted to prevent misuse.
+A “tiny LLM” typically means fewer parameters than standard GPT-2.
+DistilGPT2 is a popular slim variant of GPT-2.
+Fine-tuning large models is time-consuming and resource-heavy.
+Randomly initialized GPT-2 yields mostly nonsense responses.
+Adding more text can slightly improve coherence.
+Monitoring logs helps debug issues in ephemeral services.
+Canary releases limit blast radius of new deployments.
+Docker Compose orchestrates multi-container local dev.
+Unit tests ensure code correctness on a small scale.
+Integration tests validate end-to-end system behavior.
+A pipeline that trains, builds, and deploys is end-to-end MLOps.
+Collaboration tools like Git help teams review code effectively.
+Branching strategies vary: Git Flow, GitHub Flow, Trunk-based.
+Container registries store built images for easy reuse.
+Docker layers cache to speed up subsequent builds.
+Terraform state management is critical for consistent deployments.
+ChatGPT is an advanced LLM, but we’re using a much tinier approach.
+Minimal training data means the model may reuse words oddly.
+Observing the “weight update” messages can be interesting.
+Torch + Transformers libraries handle the core ML logic for us.
+K8s can run pods that scale horizontally under load.
+MLOps pipelines often involve data versioning as well.
+Virtual environments keep Python dependencies organized.
+Cloud Functions can handle small on-demand tasks.
+End-to-end encryption protects sensitive data in transit.
+Using environment variables helps manage secrets in CI.
+Shared development environments can cause conflicts.
+Proper documentation is vital for maintainability.
+Jupyter notebooks are handy for data exploration.
+YAML syntax can be finicky, so lint tools are helpful.
+Reproducibility is a key principle in data science workflows.
+Minimizing external dependencies reduces attack surfaces.
+Code reviews improve quality and spread domain knowledge.
+GPU spot instances can cut costs for training, but risk interruptions.
+Local caching speeds up repeated downloads in CI.
+GPT-2 relies on positional embeddings for sequence order.
+Overfitting is likely with such a tiny dataset.
+Regular commits help track incremental changes.
+Using relevant naming conventions clarifies code intent.
+CI pipelines typically run on ephemeral virtual machines.
+Observability includes metrics, logging, and tracing.
+ML model lifecycle includes data ingestion, training, deployment.
+CRON jobs can schedule recurring tasks or retraining.
+Adding a pad_token_id is essential for GPT-2 training on variable lengths.
+Serving a Flask app is a simple way to expose your model.
+The system prompt can guide the chatbot’s personality.
+Manual triggers in GitHub Actions let you re-run pipelines.
+“Infrastructure as Code” fosters reproducible environments.
+Terraform supports multiple providers beyond just Google.
+Docker images can be scanned for vulnerabilities automatically.
+Microservices can improve modularity but add complexity.
+Feature flags let you toggle capabilities without redeploying.
+GPU utilization can be monitored with nvidia-smi.
+Weighted random sampling can help with imbalanced data sets.
+RESTful APIs are still common, though GraphQL is also popular.
+Using a managed database relieves overhead from developers.
+Self-hosted runners let you customize build environments.
+Minimal layers in Docker help reduce the final image size.
+Writing small, focused commits makes reviewing easier.
+The ultimate goal is a reliable, maintainable, automated MLOps pipeline!
