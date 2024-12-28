@@ -71,7 +71,7 @@ jobs:
             --force-train \
             --model-dir ./model \
             --data-file data/training_data.txt \
-            --gcs-path "gs://my-bucket/tiny-llm-model"
+            --gcs-path "gs://tiny-llm-model/tiny-llm-model"
 
       - name: Archive Model Folder
         run: |
