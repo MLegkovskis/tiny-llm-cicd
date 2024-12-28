@@ -20,7 +20,7 @@ with open(SYSTEM_PROMPT_PATH, "r") as f:
     system_prompt = f.read().strip()
 
 # Path to the model inside container
-MODEL_PATH = "app/model"
+MODEL_PATH = "/app/model"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
 model = AutoModelForCausalLM.from_pretrained(MODEL_PATH)
 

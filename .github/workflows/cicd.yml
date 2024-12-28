@@ -64,18 +64,18 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Train or Reuse Model
+      - name: Train Model (or Skip if found in GCS)
         run: |
-          # Example GCS path: gs://my-bucket/tiny-llm-model
-          # If you do NOT use GCS, omit --gcs-path or keep it empty.
           python create_tiny_model.py \
             --train \
-            --gcs-path "gs://tiny-llm-model/tiny-llm-model" \
-            --data-file "data/training_data.txt"
+            --force-train \
+            --model-dir ./model \
+            --data-file data/training_data.txt \
+            --gcs-path "gs://my-bucket/tiny-llm-model"
 
       - name: Archive Model Folder
         run: |
-          # The create_tiny_model.py script saves the model at app/model
+          # The create_tiny_model.py script saves the model at /app/model
           # We'll compress it so we can upload as a GH artifact
           tar -czf model.tar.gz -C /app model
 
