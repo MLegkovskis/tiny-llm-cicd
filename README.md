@@ -153,15 +153,15 @@ flowchart TB
 
 1. **`create_tiny_model.py`**  
    - Runs *inside* Docker build.  
-   - Downloads GPT-2 tokenizer from Hugging Face, sets up a single-layer GPT-2 config, saves random weights in `/app/model`.
+   - Downloads GPT-2 tokenizer from Hugging Face, sets up a single-layer GPT-2 config, saves random weights in `app/model`.
 
 2. **`Dockerfile`**  
    - Uses a **PyTorch base image** for quick torch availability.  
-   - Installs Python deps, runs `create_tiny_model.py` → your tiny GPT-2 model is now in the container at `/app/model`.  
+   - Installs Python deps, runs `create_tiny_model.py` → your tiny GPT-2 model is now in the container at `app/model`.  
    - Copies the rest of the code (Flask, etc.).  
 
 3. **`app.py`**  
-   - Loads the model from `/app/model`.  
+   - Loads the model from `app/model`.  
    - Serves a chat UI at `/`.  
    - On `POST /generate`, it generates up to 50 tokens from the random GPT-2.  
 

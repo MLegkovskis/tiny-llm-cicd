@@ -10,7 +10,7 @@ Usage examples:
     python create_tiny_model.py --train --force-train \
         --data-file data/training_data.txt --model-dir ./model
 
-    # In Docker, default to /app/model
+    # In Docker, default to app/model
     python create_tiny_model.py --train --force-train \
         --data-file data/training_data.txt
 """
@@ -65,7 +65,7 @@ def collate_fn(batch, pad_token_id):
 def download_model_from_gcs(bucket_path, local_model_dir):
     """
     Download model artifacts from GCS if they exist.
-    Example: gsutil -m cp -r gs://my-bucket/tiny-llm-model /app/model
+    Example: gsutil -m cp -r gs://my-bucket/tiny-llm-model app/model
     """
     print(f"Attempting to download model from {bucket_path} ...")
     try:
@@ -82,7 +82,7 @@ def download_model_from_gcs(bucket_path, local_model_dir):
 def upload_model_to_gcs(local_model_dir, bucket_path):
     """
     Upload model artifacts to GCS for reuse.
-    Example: gsutil -m cp -r /app/model gs://my-bucket/tiny-llm-model
+    Example: gsutil -m cp -r app/model gs://my-bucket/tiny-llm-model
     """
     print(f"Uploading model to {bucket_path} ...")
     subprocess.check_call(
@@ -130,7 +130,7 @@ def main(
     force_train: bool = False,
     gcs_path: str = "",
     data_file: str = "data/training_data.txt",
-    model_dir: str = "/app/model",
+    model_dir: str = "app/model",
 ):
     """
     Entry point for creating or training a tiny GPT-2 model.
@@ -139,7 +139,7 @@ def main(
     :param force_train: If True, always train even if GCS model is available.
     :param gcs_path: GCS path to pull/push model. e.g. gs://my-bucket/tiny-llm-model
     :param data_file: Path to training text file.
-    :param model_dir: Where to store/load the model (default /app/model for Docker).
+    :param model_dir: Where to store/load the model (default app/model for Docker).
                      Locally you might use ./model instead to avoid permission issues.
     """
     print("Starting create_tiny_model.py ...")
@@ -201,7 +201,7 @@ if __name__ == "__main__":
         help="Path to the training text file."
     )
     parser.add_argument(
-        "--model-dir", type=str, default="/app/model",
+        "--model-dir", type=str, default="app/model",
         help="Where to store/load the model. Use a local path if not in Docker."
     )
     args = parser.parse_args()

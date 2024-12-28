@@ -11,7 +11,7 @@ COPY api/requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Create a model folder (we'll COPY from local artifact)
-RUN mkdir -p /app/model
+RUN mkdir -p app/model
 
 # Now copy in the rest of the source code
 # (Excluding the model, which we'll copy separately below)
@@ -21,10 +21,10 @@ COPY docker/ /app/docker/
 
 # Copy the model artifacts from the build environment
 # (The GH Action "download-artifact" step places 'model' folder at the root)
-COPY model /app/model
+COPY model app/model
 
-# Debug step (optional): see what's in /app/model
-RUN ls -l /app/model
+# Debug step (optional): see what's in app/model
+RUN ls -l app/model
 
 # Expose the Flask port
 EXPOSE 8000
