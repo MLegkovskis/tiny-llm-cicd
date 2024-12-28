@@ -77,7 +77,7 @@ jobs:
         run: |
           # The create_tiny_model.py script saves the model at /app/model
           # We'll compress it so we can upload as a GH artifact
-          tar -czf model.tar.gz -C /app model
+          tar -czf model.tar.gz ./model
 
       - name: Upload Model Artifact
         uses: actions/upload-artifact@v3
