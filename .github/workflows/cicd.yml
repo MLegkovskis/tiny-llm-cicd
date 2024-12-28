@@ -1,5 +1,3 @@
-# .github/workflows/cicd.yml
-
 name: CI/CD
 
 on:
@@ -8,16 +6,110 @@ on:
   pull_request:
 
 jobs:
-  build-deploy:
+  # 1. Lint & Test
+  lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v3
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          cd api
+          pip install --no-cache-dir -r requirements.txt
+          cd ..
+
+      - name: Flake8 (Python Lint)
+        run: |
+          pip install --no-cache-dir flake8
+          # flake8 api/ create_tiny_model.py
+
+      - name: Basic tests (Optional)
+        run: |
+          echo "Run any tests here..."
+          # e.g., python -m unittest discover tests
+
+  # 2. Train Model (or skip if GCS model is found) & Upload Artifact
+  train-model:
+    runs-on: ubuntu-latest
+    needs: [lint-and-test]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          cd api
+          pip install --no-cache-dir -r requirements.txt
+          cd ..
+
+      - name: Authenticate to Google Cloud (Optional)
+        # If you're pulling/pushing to GCS, you'll need gcloud auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud (Optional if using GCS)
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: 'latest'
+
+      - name: Train or Reuse Model
+        run: |
+          # Example GCS path: gs://my-bucket/tiny-llm-model
+          # If you do NOT use GCS, omit --gcs-path or keep it empty.
+          python create_tiny_model.py \
+            --train \
+            --gcs-path "gs://tiny-llm-model/tiny-llm-model" \
+            --data-file "data/training_data.txt"
+
+      - name: Archive Model Folder
+        run: |
+          # The create_tiny_model.py script saves the model at /app/model
+          # We'll compress it so we can upload as a GH artifact
+          tar -czf model.tar.gz -C /app model
+
+      - name: Upload Model Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: model-artifact
+          path: model.tar.gz
+
+  # 3. Build & Push Docker
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: [train-model]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Download Model Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: model-artifact
+
+      - name: Extract Model
+        run: |
+          mkdir -p model
+          tar -xzf model.tar.gz -C ./  # this puts "model" under ./app
+          # We'll move it to a top-level "model" folder to be consistent.
+          mv app/model ./model
+          rm -rf app
+          ls -l ./model
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          # Only secret you need is the service account JSON
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Google Cloud SDK
@@ -28,30 +120,67 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker europe-west2-docker.pkg.dev
 
-      # Build the Docker image, tagging it with your hardcoded path
       - name: Build Docker image
         run: |
-          docker build -t \
-            europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest \
+          docker build \
+            -t europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest \
             -f docker/Dockerfile .
 
-      # Push that same image
       - name: Push Docker image
         run: |
           docker push \
             europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
 
-      # Terraform Init & Apply (no -var references)
+  # 4. Terraform Apply
+  terraform-apply:
+    runs-on: ubuntu-latest
+    needs: [build-docker]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: 'latest'
+
       - name: Terraform Init & Apply
         working-directory: ./terraform
         run: |
           terraform init
           terraform apply -auto-approve
 
+  # 5. Ephemeral Wait
+  ephemeral-wait:
+    runs-on: ubuntu-latest
+    needs: [terraform-apply]
+    steps:
       - name: Wait 10 minutes for ephemeral demo
         run: sleep 600
 
-      # Terraform Destroy (again, no -var references)
+  # 6. Terraform Destroy
+  terraform-destroy:
+    runs-on: ubuntu-latest
+    needs: [ephemeral-wait]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: 'latest'
+
       - name: Terraform Destroy
         working-directory: ./terraform
         run: |

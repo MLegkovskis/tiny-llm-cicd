@@ -1,0 +1,5 @@
+Hello world, this is a tiny dataset line 1.
+Tiny LLMs can still learn from small data!
+Transformers are fascinating.
+Ephemeral deployments are great for demos.
+We love DevOps and MLOps!
