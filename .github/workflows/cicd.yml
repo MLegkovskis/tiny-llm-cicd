@@ -148,7 +148,8 @@ jobs:
       - name: Terraform Init & Apply
         working-directory: ./terraform
         run: |
-          terraform init
+          rm -f .terraform.lock.hcl
+          terraform init -upgrade
           terraform apply -auto-approve
 
   # 5. Ephemeral Wait
