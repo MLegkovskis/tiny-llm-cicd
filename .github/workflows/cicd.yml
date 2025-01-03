@@ -157,8 +157,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [terraform-apply]
     steps:
-      - name: Wait 10 minutes for ephemeral demo
-        run: sleep 600
+      - name: Wait 200 sec for ephemeral demo
+        run: sleep 200
 
   # 6. Terraform Destroy
   terraform-destroy:
@@ -167,17 +167,24 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v3
-
+  
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-
+  
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
           version: 'latest'
-
+  
+      - name: Terraform Init (for destroy)
+        working-directory: ./terraform
+        run: |
+          # Optional: remove lock file if you're doing ephemeral apply/destroy
+          rm -f .terraform.lock.hcl
+          terraform init -upgrade
+  
       - name: Terraform Destroy
         working-directory: ./terraform
         run: |
