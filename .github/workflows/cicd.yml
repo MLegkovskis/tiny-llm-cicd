@@ -18,12 +18,6 @@ jobs:
         with:
           python-version: "3.9"
 
-      # - name: Install dependencies
-      #   run: |
-      #     cd api
-      #     pip install --no-cache-dir -r requirements.txt
-      #     cd ..
-
       - name: Flake8 (Python Lint)
         run: |
           pip install --no-cache-dir flake8
@@ -31,10 +25,10 @@ jobs:
 
       - name: Basic tests (Optional)
         run: |
-          echo "Run any tests here..."
+          echo "Run any basic Python unit tests here..."
           # e.g., python -m unittest discover tests
 
-  # 2. Train Model (or skip if GCS model is found) & Upload Artifact
+  # 2. Train Model (or skip if found) & Upload Artifact
   train-model:
     runs-on: ubuntu-latest
     needs: [lint-and-test]
@@ -54,7 +48,6 @@ jobs:
           cd ..
 
       - name: Authenticate to Google Cloud (Optional)
-        # If you're pulling/pushing to GCS, you'll need gcloud auth
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
@@ -75,8 +68,6 @@ jobs:
 
       - name: Archive Model Folder
         run: |
-          # The create_tiny_model.py script saves the model at /app/model
-          # We'll compress it so we can upload as a GH artifact
           tar -czf model.tar.gz ./model
 
       - name: Upload Model Artifact
@@ -85,7 +76,7 @@ jobs:
           name: model-artifact
           path: model.tar.gz
 
-  # 3. Build & Push Docker
+  # 3. Build Docker
   build-docker:
     runs-on: ubuntu-latest
     needs: [train-model]
@@ -122,15 +113,53 @@ jobs:
             -t europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest \
             -f docker/Dockerfile .
 
+  # 4. Security Scan (Docker Image Vulnerability Check)
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: [build-docker]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.44.1/trivy_0.44.1_Linux-64bit.deb
+          sudo dpkg -i trivy_0.44.1_Linux-64bit.deb
+
+      - name: Docker Image Scan
+        run: |
+          trivy image --exit-code 1 --severity HIGH,CRITICAL \
+            europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
+
+  # 5. Push Docker image (only if scan passes)
+  push-docker:
+    runs-on: ubuntu-latest
+    needs: [security-scan]
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: 'latest'
+      
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker europe-west2-docker.pkg.dev
+
       - name: Push Docker image
         run: |
           docker push \
             europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
 
-  # 4. Terraform Apply, Wait, and Destroy in one job
+  # 6. Terraform Apply -> Ephemeral Environment
   ephemeral-environment:
     runs-on: ubuntu-latest
-    needs: [build-docker]
+    needs: [push-docker]
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -145,16 +174,82 @@ jobs:
         with:
           version: 'latest'
 
+      # We'll pass a unique suffix from the GitHub run_id (or PR number) to Terraform
       - name: Terraform Init & Apply
         working-directory: ./terraform
+        env:
+          ENV_SUFFIX: ${{ github.run_id }}
         run: |
           terraform init -upgrade
-          terraform apply -auto-approve
+          terraform apply -auto-approve -var="env_suffix=${ENV_SUFFIX}"
+
+      - name: Fetch Cloud Run URL
+        id: get_url
+        working-directory: ./terraform
+        run: |
+          # Save the output to GitHub Actions outputs
+          terraform output -raw cloud_run_url > url.txt
+        shell: bash
+
+      - name: Print Cloud Run URL
+        run: |
+          echo "Cloud Run URL is: $(cat terraform/url.txt)"
 
       - name: Ephemeral Wait
-        run: sleep 250
+        run: sleep 150  # e.g. 2.5 minutes to test manually
+
+  # 7. Integration Tests (once environment is up)
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [ephemeral-environment]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Retrieve Cloud Run URL
+        id: get_url
+        working-directory: ./terraform
+        run: |
+          terraform output -raw cloud_run_url > url.txt
+        shell: bash
+
+      - name: Install HTTPie
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y httpie
+
+      - name: Basic integration test
+        run: |
+          export URL=$(cat terraform/url.txt)
+          echo "Pinging $URL"
+          http --check-status --ignore-stdin GET "$URL" \
+            || (echo "FAIL: Can't access ephemeral environment" && exit 1)
+
+          # Optionally test /generate endpoint:
+          http --check-status --ignore-stdin POST "$URL/generate" prompt='Hello test' \
+            || (echo "FAIL: /generate endpoint error" && exit 1)
+
+  # 8. Terraform Destroy
+  destroy-environment:
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: 'latest'
 
       - name: Terraform Destroy
         working-directory: ./terraform
+        env:
+          ENV_SUFFIX: ${{ github.run_id }}
         run: |
-          terraform destroy -auto-approve
+          terraform destroy -auto-approve -var="env_suffix=${ENV_SUFFIX}"
