@@ -121,13 +121,33 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
+      # 1) Auth to GCP again so docker pulls work 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: 'latest'
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker europe-west2-docker.pkg.dev
+
+      # 2) Pull the existing image to local Docker, so Trivy can see it
+      - name: Pull Docker Image
+        run: |
+          docker pull europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
+
+      # 3) Install Trivy
       - name: Install Trivy
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget
+          sudo apt-get update && sudo apt-get install -y wget
           wget https://github.com/aquasecurity/trivy/releases/download/v0.44.1/trivy_0.44.1_Linux-64bit.deb
           sudo dpkg -i trivy_0.44.1_Linux-64bit.deb
 
+      # 4) Run Trivy on the local, pulled image
       - name: Docker Image Scan
         run: |
           trivy image --exit-code 1 --severity HIGH,CRITICAL \
