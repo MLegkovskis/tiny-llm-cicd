@@ -1,5 +1,3 @@
-# terraform/main.tf
-
 terraform {
   required_version = ">= 1.4.0"
   required_providers {
@@ -28,7 +26,6 @@ resource "google_cloud_run_service" "tiny_llm_service" {
     spec {
       service_account_name = google_service_account.service.email
       containers {
-        # Hardcoded Docker image reference
         image = "europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest"
         ports {
           name           = "http1"

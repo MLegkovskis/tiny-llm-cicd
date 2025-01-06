@@ -36,6 +36,10 @@ def generate_text():
         output = model.generate(
             input_ids,
             max_new_tokens=50,
+            do_sample=True,
+            top_k=50,
+            top_p=0.95,
+            temperature=1.0,
             pad_token_id=tokenizer.eos_token_id
         )
 

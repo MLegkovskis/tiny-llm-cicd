@@ -1,5 +1,3 @@
-// frontend/script.js
-
 async function sendPrompt() {
     const chatContainer = document.getElementById("chat-container");
     const userInputField = document.getElementById("userPrompt");
