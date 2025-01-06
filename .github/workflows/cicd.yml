@@ -152,7 +152,7 @@ jobs:
           terraform apply -auto-approve
 
       - name: Ephemeral Wait
-        run: sleep 200
+        run: sleep 250
 
       - name: Terraform Destroy
         working-directory: ./terraform
