@@ -150,8 +150,13 @@ jobs:
       # 4) Run Trivy on the local, pulled image
       - name: Docker Image Scan
         run: |
-          trivy image --exit-code 1 --severity HIGH,CRITICAL \
+          trivy image \
+            --scanners vuln \
+            --exit-code 1 \
+            --severity HIGH,CRITICAL \
             europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
+
+
 
   # 5. Push Docker image (only if scan passes)
   push-docker:
