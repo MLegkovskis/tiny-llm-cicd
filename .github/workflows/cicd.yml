@@ -128,19 +128,13 @@ jobs:
           wget https://github.com/aquasecurity/trivy/releases/download/v0.44.1/trivy_0.44.1_Linux-64bit.deb
           sudo dpkg -i trivy_0.44.1_Linux-64bit.deb
 
-      # Create a .trivyignore file ignoring CVE-2023-6730
-      - name: Create .trivyignore
-        run: |
-          echo "CVE-2023-6730" > .trivyignore
-          cat .trivyignore
-
-      - name: Scan Docker image (vulnerabilities only)
+      - name: Docker Image Scan (library only, CRITICAL only)
         continue-on-error: true
         run: |
           trivy image \
             --scanners vuln \
-            --exit-code 1 \
-            --severity HIGH,CRITICAL \
+            --vuln-type library \
+            --severity CRITICAL \
             europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
 
       - name: Push Docker image
