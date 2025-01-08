@@ -1,17 +1,21 @@
-# Tiny LLM CICD Demo 🚀
+# Tiny LLM CICD Demo :rocket:
 
 > A fully automated, **ephemeral** LLM chatbot project that dynamically **builds** a tiny GPT-2–style model at Docker **build time**, deploys it to **Google Cloud Run** with a **GitHub Actions** pipeline, and tears it all down automatically.
 
-### Table of Contents
+---
+
+## Table of Contents
+
 1. [Overview](#overview)  
 2. [Architecture & Flow](#architecture--flow)  
 3. [Features](#features)  
-4. [Prerequisites](#prerequisites)  
-5. [Setup & Deployment](#setup--deployment)  
-6. [Repository Structure](#repository-structure)  
-7. [How It Works](#how-it-works)  
-8. [Local Testing](#local-testing)  
-9. [Enhancing `create_tiny_model.py`](#enhancing-createtiny_modelpy)
+4. [Latest Enhancements](#latest-enhancements)  
+5. [Prerequisites](#prerequisites)  
+6. [Setup & Deployment](#setup--deployment)  
+7. [Repository Structure](#repository-structure)  
+8. [How It Works](#how-it-works)  
+9. [Local Testing](#local-testing)  
+10. [Enhancing `create_tiny_model.py`](#enhancing-createtiny_modelpy)
 
 ---
 
@@ -24,7 +28,7 @@ This project showcases how to:
 - **Automate** the entire build-deploy-destroy cycle using **Terraform** and **GitHub Actions**.  
 - Provide a quick & easy **MLOps** demonstration with ephemeral **Cloud Run** resources.  
 
-Even though the model is **random**, the pipeline is entirely **real**—perfect for showing your **🛠️ DevOps** and **🤖 MLOps** skills!
+Even though the model is **random**, the pipeline is entirely **real**—perfect for demonstrating **DevOps** and **MLOps** skills in a modern infrastructure.
 
 ---
 
@@ -34,34 +38,57 @@ Even though the model is **random**, the pipeline is entirely **real**—perfect
 flowchart LR
     A[👩‍💻 Developer] --> B[Commit/Push<br>to GitHub]
     B --> C[GitHub Actions 🛠️]
-    C --> D[Docker Build & Push<br>to Artifact Registry]
-    D --> E[Terraform Apply<br>to Cloud Run ☁️]
-    E --> F[Service Runs<br>for 10 min]
-    F --> G[Terraform Destroy<br>Resources Freed]
+    C --> D[Docker Build & Scan]
+    D --> E[Docker Push<br>to Artifact Registry]
+    E --> F[Terraform Apply<br>to Cloud Run ☁️]
+    F --> G[Service Runs<br>(Ephemeral)]
+    G --> H[Terraform Destroy<br>Resources Freed]
 ```
 
 1. You **push** code or open a PR.  
-2. **GitHub Actions** runs, building a Docker image **which** dynamically creates a “tiny GPT-2” model.  
-3. The image is **pushed** to **Artifact Registry**.  
+2. **GitHub Actions** runs:
+   - **Builds** a Docker image which **dynamically** creates a tiny GPT-2–style model.
+   - **Scans** the image for vulnerabilities (CRITICAL only, ignoring certain known CVEs).
+3. If the scan **passes**, the image is **pushed** to **Artifact Registry**.  
 4. **Terraform** deploys that image to **Cloud Run** in an ephemeral environment.  
-5. After **10 minutes** of testing, the pipeline **destroys** everything.
+5. After a short wait (for demo/testing), the pipeline **destroys** everything.
 
 ---
 
 ## Features
 
 1. **Model Generated at Build Time**  
-   - No local `model/` or `pytorch_model.bin`. A script dynamically creates the tiny model + tokenizer inside the Docker container.
+   - No local `model/` or `pytorch_model.bin`. A script dynamically creates the tiny GPT-2–style model inside the Docker container.
 
 2. **End-to-End CI/CD**  
-   - On every push, the pipeline handles build, deploy, test, teardown—**fully automated**.
+   - On every push, the pipeline handles build, scanning, push, deployment, and tear-down—**fully automated**.
 
 3. **Chat Interface**  
-   - Minimal HTML/JS page for user → bot messages.  
-   - Even though outputs are random, it feels like a real chatbot flow.
+   - Minimal HTML/JS for user → bot messages.  
+   - Although outputs are random, the flow mimics a real chatbot experience.
 
 4. **Ephemeral Cloud Run**  
-   - **Cost** stays low. The service is gone after a short demo window.  
+   - **Cost** remains low. The service is ephemeral (short-lived) and self-destructs.
+
+5. **Separate Docker Push Stage**  
+   - The pipeline **only** pushes the Docker image if it **passes** vulnerability scanning, ensuring code quality and security gates are enforced by default.
+
+---
+
+## Latest Enhancements
+
+1. **Docker Scanning with Trivy**  
+   - Scans for **CRITICAL** vulnerabilities, ignoring a specific known CVE (`CVE-2023-6730`) for demonstration purposes.  
+   - Offers a real example of DevSecOps best practices in a minimal environment.
+
+2. **Multi-Stage CI**  
+   - The pipeline now has distinct jobs for building the Docker image, scanning it, and pushing it—showing how a more complex, enterprise-grade CI structure might look.
+
+3. **Ephemeral Infrastructure**  
+   - Terraform is used to apply and then destroy the entire Cloud Run service automatically, demonstrating cost-effective, short-lived test environments (also known as “ephemeral environments”).
+
+4. **MLOps Integration**  
+   - The pipeline trains (or reuses) a tiny GPT-2 model, packaging the final weights into the Docker container, bridging the gap between machine learning steps and DevOps.
 
 ---
 
@@ -69,69 +96,71 @@ flowchart LR
 
 1. **Google Cloud Project**  
    - Enable **Cloud Run**, **Artifact Registry**, and **IAM**.  
-   - Create a **Docker** repo in **Artifact Registry**.  
+   - Create a **Docker** repository in **Artifact Registry**.  
    - Create a **service account** with:
      - `Artifact Registry Admin`  
      - `Cloud Run Admin`  
-     - `Service Account User`  
+     - `Service Account User`
 
-2. **GitHub Repo**  
-   - Add a secret `GCP_SA_KEY` (service account JSON).  
+2. **GitHub Secrets**  
+   - Add a secret named `GCP_SA_KEY` containing the JSON credentials for that service account.  
    - The pipeline references it for authentication.
 
 3. **Local Tools (Optional)**  
-   - If you want to test locally: Python 3.9+, `pip install -r api/requirements.txt`.
+   - If you want to test everything locally: Python 3.9+, `pip install -r api/requirements.txt`.
 
 ---
 
 ## Setup & Deployment
 
-1. **Clone** this repo  
+1. **Clone** this repo:
+
    ```bash
    git clone https://github.com/MLegkovskis/tiny-llm-cicd.git
    cd tiny-llm-cicd
    ```
 
-2. **Update** `.github/workflows/cicd.yml` + `terraform/main.tf`  
-   - Ensure your **GCP region** and **project ID** are correct.
+2. **Configure** `.github/workflows/cicd.yml` and `terraform/main.tf`  
+   - Ensure your **project ID** and **region** match your GCP environment.
 
 3. **Commit & Push**  
-   - The GitHub Actions pipeline will:
-     - Build a Docker image (running `create_tiny_model.py` inside).  
-     - Push it to your Artifact Registry.  
-     - `terraform apply` to create a Cloud Run service.  
-     - Wait 10 minutes.  
-     - `terraform destroy`.
+   - GitHub Actions will:
+     1. **Build** and **scan** the Docker image.  
+     2. **Push** it to your Artifact Registry (if scanning passes).  
+     3. **Deploy** to Cloud Run via Terraform.  
+     4. **Wait** a few minutes, then automatically **destroy** the resources.
 
 4. **Test**  
-   - Check the **Actions** logs for `cloud_run_url`.  
-   - Open that URL. A chat page loads. Type any message—see random output.  
-   - Service self-destructs after 10 minutes!
+   - In the GitHub Actions logs, look for the `cloud_run_url` output.  
+   - Open that link—test the chatbot in your browser.  
+   - After a few minutes, the pipeline destroys the resources, incurring no ongoing cost.
 
 ---
 
 ## Repository Structure
 
-```bash
+```
 tiny-llm-cicd/
 ├── .github/
 │   └── workflows/
-│       └── cicd.yml       # 🛠️ GitHub Actions pipeline
+│       └── cicd.yml         # 🛠️ GitHub Actions pipeline
 ├── api/
-│   ├── app.py             # Flask app + chat endpoints
+│   ├── app.py               # Flask app + chat endpoints
 │   ├── requirements.txt
-│   └── system_prompt.txt  # The system prompt text
+│   └── system_prompt.txt    # The system prompt text
 ├── docker/
-│   └── Dockerfile         # Builds Docker, calls create_tiny_model.py
+│   └── Dockerfile           # Builds Docker, calls create_tiny_model.py
 ├── frontend/
-│   ├── index.html         # Chat interface
-│   └── script.js          # Basic JS to POST /generate
+│   ├── index.html           # Chat interface
+│   └── script.js            # Basic JS to POST /generate
 ├── terraform/
-│   └── main.tf            # Cloud Run + IAM ephemeral infra
-└── create_tiny_model.py   # Dynamically creates model at Docker build
+│   └── main.tf              # Cloud Run + IAM ephemeral infra
+├── create_tiny_model.py     # Dynamically creates model at Docker build
+└── README.md                # This file
 ```
 
-**Mermaid View**:
+**Mermaid Diagram**:
+
 ```mermaid
 flowchart TB
     A[tiny-llm-cicd/] --> A1[.github/workflows/cicd.yml]
@@ -152,47 +181,53 @@ flowchart TB
 ## How It Works
 
 1. **`create_tiny_model.py`**  
-   - Runs *inside* Docker build.  
-   - Downloads GPT-2 tokenizer from Hugging Face, sets up a single-layer GPT-2 config, saves random weights in `/app/model`.
+   - Runs *inside* Docker build (or locally if you prefer).  
+   - Downloads GPT-2 tokenizer from Hugging Face, sets up a “single-layer GPT-2” config, then saves weights into `/app/model`.
 
 2. **`Dockerfile`**  
    - Uses a **PyTorch base image** for quick torch availability.  
-   - Installs Python deps, runs `create_tiny_model.py` → your tiny GPT-2 model is now in the container at `/app/model`.  
-   - Copies the rest of the code (Flask, etc.).  
+   - Installs Python deps, runs `create_tiny_model.py` inside the container.  
+   - Copies in the web app (Flask + front end).
 
 3. **`app.py`**  
    - Loads the model from `/app/model`.  
    - Serves a chat UI at `/`.  
-   - On `POST /generate`, it generates up to 50 tokens from the random GPT-2.  
+   - On `POST /generate`, it runs a quick text generation with the newly trained random GPT-2.  
 
 4. **Terraform**  
-   - Deploys the Docker image to Cloud Run.  
-   - Allows unauthenticated access so you can share the link.
+   - Deploys the Docker image to Cloud Run, creates a service account, and grants `roles/run.invoker` to `allUsers` so it’s publicly accessible.
 
 5. **GitHub Actions**  
-   - Ties it all together: build → push → apply → wait → destroy.  
+   - **Build** → **Scan** → **Push** → **Terraform Apply** → **Wait** → **Terraform Destroy**.  
+   - Everything is ephemeral and automated.
 
 ---
 
 ## Local Testing
 
-1. **Install Requirements**  
+1. **Install Requirements**:
+
    ```bash
    cd api
    pip install -r requirements.txt
    cd ..
    ```
-2. **You can build** the tiny GPT-2 model locally if you like:
+
+2. **Train** the tiny GPT-2 model locally if desired:
+
    ```bash
-   python create_tiny_model.py
+   python create_tiny_model.py --train --force-train
    ```
-   - But typically it’s generated in Docker.  
+
+   This places the model in `./model`. Typically the pipeline handles this in Docker.
+
 3. **Run** the Flask app:
+
    ```bash
    python api/app.py
    ```
-4. **Open** http://127.0.0.1:8000 and try the chat.  
-   - You’ll see random nonsense tokens.
+
+4. **Open** [http://127.0.0.1:8000](http://127.0.0.1:8000) and enjoy random GPT-2 text generation.
 
 ---
 
@@ -201,12 +236,12 @@ flowchart TB
 Currently, `create_tiny_model.py`:
 
 - Creates a **random** single-layer GPT-2 config.  
-- Loads GPT-2’s **tokenizer** from Hugging Face.  
+- Downloads GPT-2’s **tokenizer** from Hugging Face.  
 
-To **integrate a real** `DistilGPT2` or `GPT2` from Hugging Face:
+**For a more realistic model**:
 
-1. **Remove** the random `GPT2Config(...)` code.  
-2. **Use** `model = GPT2LMHeadModel.from_pretrained("distilgpt2")` (or `"gpt2"`).  
-3. Then **save_pretrained("model")** if you want it bundled in the image.  
+1. Remove the random `GPT2Config(...)` calls.  
+2. Use `GPT2LMHeadModel.from_pretrained("distilgpt2")` (or `"gpt2"`).  
+3. Then `save_pretrained("model")` if you want the real model packaged in your Docker image.
 
-This would drastically **increase** the container size, but you’d get **coherent** text responses. Alternatively, you could mount the model from outside or fetch it at runtime. For large-scale production, consider a separate model registry or BFS like GCS or S3. 
+However, be mindful that a full GPT-2 or DistilGPT2 will significantly **increase** the container size. In production, you might store large models in a dedicated registry or fetch them at runtime, balancing cost and performance.
