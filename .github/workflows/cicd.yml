@@ -85,7 +85,7 @@ jobs:
           name: model-artifact
           path: model.tar.gz
 
-  # 3. Build & Push Docker
+  # 3. Build & Scan Docker (push only if scan passes)
   build-docker:
     runs-on: ubuntu-latest
     needs: [train-model]
@@ -122,7 +122,26 @@ jobs:
             -t europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest \
             -f docker/Dockerfile .
 
+      # Prune any unused docker resources to reclaim space
+      - name: Prune Docker
+        run: docker system prune --all --volumes --force
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get update && sudo apt-get install -y wget
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.44.1/trivy_0.44.1_Linux-64bit.deb
+          sudo dpkg -i trivy_0.44.1_Linux-64bit.deb
+
+      - name: Scan Docker image (vulnerabilities only)
+        run: |
+          trivy image \
+            --scanners vuln \
+            --exit-code 1 \
+            --severity HIGH,CRITICAL \
+            europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
+
       - name: Push Docker image
+        if: success()
         run: |
           docker push \
             europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
