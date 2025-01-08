@@ -32,18 +32,7 @@ Even though the model is **random**, the pipeline is entirely **real**—perfect
 
 ---
 
-## Architecture & Flow
-
-```mermaid
-flowchart LR
-    A[👩‍💻 Developer] --> B[Commit/Push<br>to GitHub]
-    B --> C[GitHub Actions 🛠️]
-    C --> D[Docker Build & Scan]
-    D --> E[Docker Push<br>to Artifact Registry]
-    E --> F[Terraform Apply<br>to Cloud Run ☁️]
-    F --> G[Service Runs<br>(Ephemeral)]
-    G --> H[Terraform Destroy<br>Resources Freed]
-```
+## Flow
 
 1. You **push** code or open a PR.  
 2. **GitHub Actions** runs:
