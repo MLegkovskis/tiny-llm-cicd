@@ -106,9 +106,12 @@ jobs:
           # Enable Cloud Storage API
           gcloud services enable storage.googleapis.com --project=${{ env.PROJECT_ID }}
           
+          # Enable Cloud Resource Manager API (needed for IAM operations)
+          gcloud services enable cloudresourcemanager.googleapis.com --project=${{ env.PROJECT_ID }}
+          
           # Wait a moment for APIs to be fully enabled
           echo "Waiting for APIs to be fully enabled..."
-          sleep 10
+          sleep 20
           
           echo "APIs enabled successfully."
 
@@ -131,21 +134,11 @@ jobs:
             echo "Repository ${{ env.REPOSITORY }} already exists."
           fi
           
-          # Grant permissions to the service account
-          SERVICE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
-          echo "Using service account: $SERVICE_ACCOUNT"
-          
-          # Grant artifact registry admin role to the service account
-          gcloud projects add-iam-policy-binding ${{ env.PROJECT_ID }} \
-            --member="serviceAccount:$SERVICE_ACCOUNT" \
-            --role="roles/artifactregistry.admin"
-            
-          # Grant storage admin role to the service account (for GCS operations)
-          gcloud projects add-iam-policy-binding ${{ env.PROJECT_ID }} \
-            --member="serviceAccount:$SERVICE_ACCOUNT" \
-            --role="roles/storage.admin"
-            
-          echo "IAM permissions granted successfully."
+          # Skip IAM binding operations as they require additional permissions
+          # Instead, ensure the service account has the right roles in the Google Cloud Console
+          echo "Note: Make sure your service account has the following roles in GCP Console:"
+          echo "- roles/artifactregistry.admin"
+          echo "- roles/storage.admin"
 
       - name: Train Model (or Skip if found in GCS)
         run: |
