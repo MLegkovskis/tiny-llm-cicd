@@ -21,7 +21,7 @@
 
 ## Overview
 
-This project showcases how to:
+The project showcases how to:
 
 - **Generate** a tiny GPT-2–style model **on the fly** inside the Docker image (no local `model/` folder!).  
 - Serve a **simple chat interface** with random nonsense text.  
