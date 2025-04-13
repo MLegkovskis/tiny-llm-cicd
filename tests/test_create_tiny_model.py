@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch, MagicMock
 import torch
+from torch.optim import AdamW
 from transformers import AutoTokenizer
 
 # Import the module to test
@@ -49,7 +50,7 @@ class TestFineTuneModel(unittest.TestCase):
     """Test the fine_tune_model function"""
     
     @patch('create_tiny_model.DataLoader')
-    @patch('create_tiny_model.AdamW')
+    @patch('torch.optim.AdamW')
     @patch('create_tiny_model.get_linear_schedule_with_warmup')
     def test_fine_tune_model_calls(self, mock_scheduler, mock_optimizer, mock_dataloader):
         """Test that fine_tune_model calls the right functions"""

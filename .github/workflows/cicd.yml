@@ -29,7 +29,11 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          pip install --no-cache-dir pytest pytest-mock torch transformers
+          pip install --no-cache-dir pytest pytest-mock
+          pip install --no-cache-dir torch==2.0.1
+          pip install --no-cache-dir transformers==4.30.2
+          pip install --no-cache-dir flask==2.3.3
+          pip install --no-cache-dir -r api/requirements.txt
 
       - name: Run unit tests
         run: |

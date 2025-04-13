@@ -20,10 +20,10 @@ import argparse
 import subprocess
 import torch
 from torch.utils.data import Dataset, DataLoader
+from torch.optim import AdamW
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
-    AdamW,
     get_linear_schedule_with_warmup
 )
 
