@@ -1,7 +1,7 @@
+# Testing dependencies
 pytest==8.0.0
 pytest-mock==3.11.1
 flake8==7.0.0
-torch==2.0.1
-transformers==4.30.2
-flask==2.3.3
+
+# Include API requirements
 -r api/requirements.txt
