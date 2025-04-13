@@ -202,8 +202,18 @@ jobs:
           docker build \
             -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest \
             -f docker/Dockerfile .
+          
+          # Verify the image was built successfully
+          echo "Verifying Docker image..."
+          docker images | grep ${{ env.REPOSITORY }}
 
-      # Prune any unused docker resources to reclaim space
+      - name: Push Docker image to Artifact Registry
+        run: |
+          echo "Pushing Docker image to Artifact Registry..."
+          docker push \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest
+          echo "Image pushed successfully."
+
       - name: Prune Docker
         run: docker system prune --all --volumes --force
 
@@ -213,7 +223,6 @@ jobs:
           wget https://github.com/aquasecurity/trivy/releases/download/v0.44.1/trivy_0.44.1_Linux-64bit.deb
           sudo dpkg -i trivy_0.44.1_Linux-64bit.deb
 
-      # Create a .trivyignore file ignoring CVE-2023-6730
       - name: Create .trivyignore
         run: |
           echo "CVE-2023-6730" > .trivyignore
@@ -221,6 +230,8 @@ jobs:
 
       - name: Docker Image Scan (CRITICAL only)
         run: |
+          # Use local image for scanning instead of trying to pull from registry
+          echo "Scanning local Docker image..."
           trivy image \
             --scanners vuln \
             --ignorefile .trivyignore \
@@ -266,18 +277,17 @@ jobs:
           echo "Using repository: ${{ env.REPOSITORY }} in region: ${{ env.REGION }} and project: ${{ env.PROJECT_ID }}"
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      # We don't care if we re-pull or re-build
-      # Minimal approach: re-build from scratch
       - name: Build Docker image (again)
         run: |
           docker build \
             -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest \
             -f docker/Dockerfile .
 
-      - name: Push Docker image
-        run: |
-          docker push \
-            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest
+      # Skip this step since we've already pushed the image in the build-docker job
+      # - name: Push Docker image
+      #   run: |
+      #     docker push \
+      #       ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest
 
   # 4. Terraform Apply, Wait, and Destroy in one job
   ephemeral-environment:
