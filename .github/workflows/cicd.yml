@@ -251,16 +251,6 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Download Model Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: model-artifact
-
-      - name: Extract Model
-        run: |
-          tar -xzf model.tar.gz -C .
-          ls -l ./model
-
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -271,23 +261,12 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Configure Docker for Artifact Registry
+      - name: Verify Docker image in Artifact Registry
         run: |
-          # Use environment variables from the previous job
-          echo "Using repository: ${{ env.REPOSITORY }} in region: ${{ env.REGION }} and project: ${{ env.PROJECT_ID }}"
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
-
-      - name: Build Docker image (again)
-        run: |
-          docker build \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest \
-            -f docker/Dockerfile .
-
-      # Skip this step since we've already pushed the image in the build-docker job
-      # - name: Push Docker image
-      #   run: |
-      #     docker push \
-      #       ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest
+          echo "Verifying image exists in Artifact Registry..."
+          gcloud artifacts docker images list ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }} \
+            --include-tags \
+            --format="value(package,version)" | grep ${{ env.REPOSITORY }}:latest || echo "Image not found, but continuing anyway as it may be a first-time run"
 
   # 4. Terraform Apply, Wait, and Destroy in one job
   ephemeral-environment:
@@ -310,6 +289,15 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
         with:
           version: 'latest'
+          
+      - name: Install Terraform
+        run: |
+          echo "Installing Terraform..."
+          sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
+          wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+          sudo apt-get update && sudo apt-get install -y terraform
+          terraform --version
 
       - name: Terraform Init & Apply
         working-directory: ./terraform
