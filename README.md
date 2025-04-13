@@ -1,6 +1,6 @@
-# Tiny LLM CICD Demo :rocket:
+# Tiny LLM CICD: MLOps Pipeline Showcase 
 
-> A fully automated, **ephemeral** LLM chatbot project that dynamically **builds** a tiny GPT-2–style model at Docker **build time**, deploys it to **Google Cloud Run** with a **GitHub Actions** pipeline, and tears it all down automatically.
+> A production-grade MLOps pipeline that fine-tunes a DistilGPT2 model, evaluates its quality, and deploys it to Google Cloud Run with comprehensive CI/CD, infrastructure as code, and automated testing.
 
 ---
 
@@ -8,95 +8,178 @@
 
 1. [Overview](#overview)  
 2. [Architecture & Flow](#architecture--flow)  
-3. [Features](#features)  
-4. [Latest Enhancements](#latest-enhancements)  
-5. [Prerequisites](#prerequisites)  
-6. [Setup & Deployment](#setup--deployment)  
-7. [Repository Structure](#repository-structure)  
-8. [How It Works](#how-it-works)  
-9. [Local Testing](#local-testing)  
-10. [Enhancing `create_tiny_model.py`](#enhancing-createtiny_modelpy)
+3. [Key Features](#key-features)  
+4. [Technical Components](#technical-components)  
+5. [MLOps Best Practices](#mlops-best-practices)  
+6. [Prerequisites](#prerequisites)  
+7. [Setup & Deployment](#setup--deployment)  
+8. [Repository Structure](#repository-structure)  
+9. [How It Works](#how-it-works)  
+10. [Local Testing](#local-testing)  
+11. [Development Roadmap](#development-roadmap)
 
 ---
 
 ## Overview
 
-The project showcases how to:
+This project demonstrates a comprehensive MLOps pipeline for fine-tuning, evaluating, and deploying a language model. It showcases:
 
-- **Generate** a tiny GPT-2–style model **on the fly** inside the Docker image (no local `model/` folder!).  
-- Serve a **simple chat interface** with random nonsense text.  
-- **Automate** the entire build-deploy-destroy cycle using **Terraform** and **GitHub Actions**.  
-- Provide a quick & easy **MLOps** demonstration with ephemeral **Cloud Run** resources.  
+- **Production-grade model training** with DistilGPT2 and proper fine-tuning techniques
+- **Robust model evaluation** with perplexity metrics and quality thresholds
+- **Versioned deployments** using Git SHA-based Docker image tagging
+- **Comprehensive testing** with unit tests for all components
+- **Infrastructure as code** with parameterized Terraform configurations
+- **Professional UI** with modern design and user experience
+- **End-to-end CI/CD pipeline** with GitHub Actions
 
-Even though the model is **random**, the pipeline is entirely **real**—perfect for demonstrating **DevOps** and **MLOps** skills in a modern infrastructure.
-
----
-
-## Flow
-
-1. You **push** code or open a PR.  
-2. **GitHub Actions** runs:
-   - **Builds** a Docker image which **dynamically** creates a tiny GPT-2–style model.
-   - **Scans** the image for vulnerabilities (CRITICAL only, ignoring certain known CVEs).
-3. If the scan **passes**, the image is **pushed** to **Artifact Registry**.  
-4. **Terraform** deploys that image to **Cloud Run** in an ephemeral environment.  
-5. After a short wait (for demo/testing), the pipeline **destroys** everything.
+The entire system is designed to demonstrate MLOps best practices in a real-world scenario, perfect for showcasing AI engineering skills.
 
 ---
 
-## Features
+## Architecture & Flow
 
-1. **Model Generated at Build Time**  
-   - No local `model/` or `pytorch_model.bin`. A script dynamically creates the tiny GPT-2–style model inside the Docker container.
+```mermaid
+graph TD
+    A[Developer Push] --> B[GitHub Actions CI/CD]
+    B --> C1[Lint & Test]
+    C1 --> C2[Train Model]
+    C2 --> C3[Evaluate Model]
+    C3 --> D{Quality Check}
+    D -->|Pass| E[Build & Tag Docker Image]
+    D -->|Fail| F[Stop Deployment]
+    E --> G[Scan Image]
+    G --> H[Deploy to Cloud Run]
+    H --> I[Health Check]
+    I --> J[Ephemeral Environment]
+    J --> K[Destroy Resources]
+```
 
-2. **End-to-End CI/CD**  
-   - On every push, the pipeline handles build, scanning, push, deployment, and tear-down—**fully automated**.
-
-3. **Chat Interface**  
-   - Minimal HTML/JS for user → bot messages.  
-   - Although outputs are random, the flow mimics a real chatbot experience.
-
-4. **Ephemeral Cloud Run**  
-   - **Cost** remains low. The service is ephemeral (short-lived) and self-destructs.
-
-5. **Separate Docker Push Stage**  
-   - The pipeline **only** pushes the Docker image if it **passes** vulnerability scanning, ensuring code quality and security gates are enforced by default.
+1. **Development**: Code changes are pushed to GitHub
+2. **Quality Gates**: 
+   - Linting and automated tests run
+   - Model is trained (or retrieved from cache)
+   - Model quality is evaluated against thresholds
+3. **Deployment**:
+   - Docker image is built with Git SHA tag
+   - Image is scanned for vulnerabilities
+   - Terraform deploys to Cloud Run with health checks
+4. **Cleanup**: Resources are automatically destroyed after demo period
 
 ---
 
-## Latest Enhancements
+## Key Features
 
-1. **Docker Scanning with Trivy**  
-   - Scans for **CRITICAL** vulnerabilities, ignoring a specific known CVE (`CVE-2023-6730`) for demonstration purposes.  
-   - Offers a real example of DevSecOps best practices in a minimal environment.
+### 1. Production-Grade Model Training
+- Uses pre-trained **DistilGPT2** from Hugging Face
+- Implements proper fine-tuning with learning rate scheduling
+- Includes dataset handling with tokenization and batching
+- Supports training from scratch or incremental fine-tuning
 
-2. **Multi-Stage CI**  
-   - The pipeline now has distinct jobs for building the Docker image, scanning it, and pushing it—showing how a more complex, enterprise-grade CI structure might look.
+### 2. Model Evaluation Framework
+- Calculates **perplexity** on validation dataset
+- Generates sample responses for qualitative assessment
+- Enforces quality thresholds for deployment
+- Produces detailed evaluation reports
 
-3. **Ephemeral Infrastructure**  
-   - Terraform is used to apply and then destroy the entire Cloud Run service automatically, demonstrating cost-effective, short-lived test environments (also known as “ephemeral environments”).
+### 3. Versioned Deployments
+- Uses Git SHA for Docker image tagging
+- Ensures reproducibility and traceability
+- Supports rollback to previous versions
+- Maintains latest tag for convenience
 
-4. **MLOps Integration**  
-   - The pipeline trains (or reuses) a tiny GPT-2 model, packaging the final weights into the Docker container, bridging the gap between machine learning steps and DevOps.
+### 4. Comprehensive Testing
+- Unit tests for model training, evaluation, and API
+- Linting with flake8 for code quality
+- Test coverage for critical components
+- Automated test execution in CI pipeline
+
+### 5. Infrastructure as Code
+- Parameterized Terraform configuration
+- Cloud Run service with health checks
+- Resource scaling and concurrency settings
+- Security and access control
+
+### 6. Professional UI
+- Modern, responsive design
+- Real-time typing indicators
+- Error handling and user feedback
+- Energy/sustainability theme
+
+### 7. CI/CD Pipeline
+- GitHub Actions workflow
+- Multi-stage build process
+- Quality gates and security scanning
+- Automated deployment and cleanup
+
+---
+
+## Technical Components
+
+| Component | Technology | Description |
+|-----------|------------|-------------|
+| **ML Framework** | Transformers (Hugging Face) | State-of-the-art NLP models and tools |
+| **Base Model** | DistilGPT2 | Efficient pre-trained language model |
+| **Training** | PyTorch | Deep learning framework for model training |
+| **API** | Flask | Lightweight web framework for serving model |
+| **Frontend** | HTML/CSS/JS | Modern responsive UI for chatbot interface |
+| **Container** | Docker | Application packaging and deployment |
+| **CI/CD** | GitHub Actions | Automated workflow orchestration |
+| **Infrastructure** | Terraform | Infrastructure as code for Cloud Run |
+| **Cloud Provider** | Google Cloud Platform | Scalable cloud infrastructure |
+| **Deployment** | Cloud Run | Serverless container deployment |
+| **Registry** | Artifact Registry | Container image storage |
+| **Security** | Trivy | Container vulnerability scanning |
+
+---
+
+## MLOps Best Practices
+
+This project demonstrates several MLOps best practices:
+
+### 1. Model Development
+- **Reproducibility**: Fixed random seeds and versioned dependencies
+- **Modularity**: Separation of training, evaluation, and serving
+- **Configurability**: Parameterized training and evaluation
+
+### 2. Testing & Quality
+- **Automated Testing**: Unit tests for all components
+- **Evaluation Metrics**: Perplexity calculation and thresholds
+- **Code Quality**: Linting and style enforcement
+
+### 3. Deployment & Operations
+- **Containerization**: Docker packaging of model and application
+- **Infrastructure as Code**: Terraform for reproducible environments
+- **Health Monitoring**: Liveness and readiness probes
+
+### 4. CI/CD Pipeline
+- **Automation**: End-to-end automated workflow
+- **Quality Gates**: Tests and evaluations must pass before deployment
+- **Security Scanning**: Vulnerability detection before deployment
+
+### 5. Versioning & Reproducibility
+- **Model Versioning**: Git SHA-based image tagging
+- **Artifact Management**: Versioned Docker images in registry
+- **Traceability**: Each deployment linked to specific code version
 
 ---
 
 ## Prerequisites
 
 1. **Google Cloud Project**  
-   - Enable **Cloud Run**, **Artifact Registry**, and **IAM**.  
-   - Create a **Docker** repository in **Artifact Registry**.  
+   - Enable **Cloud Run**, **Artifact Registry**, and **IAM**
+   - Create a **Docker** repository in **Artifact Registry**
    - Create a **service account** with:
      - `Artifact Registry Admin`  
      - `Cloud Run Admin`  
      - `Service Account User`
 
 2. **GitHub Secrets**  
-   - Add a secret named `GCP_SA_KEY` containing the JSON credentials for that service account.  
-   - The pipeline references it for authentication.
+   - Add a secret named `GCP_SA_KEY` containing the JSON credentials for that service account
 
-3. **Local Tools**  
-   - If you want to test everything locally: Python 3.9+, `pip install -r api/requirements.txt`.
+3. **Local Development Environment**  
+   - Python 3.9+
+   - Docker
+   - Terraform (optional, for local infrastructure testing)
 
 ---
 
@@ -109,20 +192,25 @@ Even though the model is **random**, the pipeline is entirely **real**—perfect
    cd tiny-llm-cicd
    ```
 
-2. **Configure** `.github/workflows/cicd.yml` and `terraform/main.tf`  
-   - Ensure your **project ID** and **region** match your GCP environment.
+2. **Configure** environment variables:
+   - Update project ID, region, and repository name in:
+     - `.github/workflows/cicd.yml`
+     - `terraform/variables.tf` (defaults)
 
-3. **Commit & Push**  
-   - GitHub Actions will:
-     1. **Build** and **scan** the Docker image.  
-     2. **Push** it to your Artifact Registry (if scanning passes).  
-     3. **Deploy** to Cloud Run via Terraform.  
-     4. **Wait** a few minutes, then automatically **destroy** the resources.
+3. **Install** dependencies for local development:
 
-4. **Test**  
-   - In the GitHub Actions logs, look for the `cloud_run_url` output.  
-   - Open that link—test the chatbot in your browser.  
-   - After a few minutes, the pipeline destroys the resources, incurring no ongoing cost.
+   ```bash
+   pip install -r api/requirements.txt
+   pip install pytest pytest-mock
+   ```
+
+4. **Commit & Push**  
+   - GitHub Actions will automatically:
+     1. Run linting and tests
+     2. Train and evaluate the model
+     3. Build, tag, and scan the Docker image
+     4. Deploy to Cloud Run via Terraform
+     5. Destroy resources after demo period
 
 ---
 
@@ -130,107 +218,142 @@ Even though the model is **random**, the pipeline is entirely **real**—perfect
 
 ```
 tiny-llm-cicd/
-├── .github/
-│   └── workflows/
-│       └── cicd.yml         # 🛠️ GitHub Actions pipeline
+├── .github/workflows/
+│   └── cicd.yml                # GitHub Actions pipeline
 ├── api/
-│   ├── app.py               # Flask app + chat endpoints
-│   ├── requirements.txt
-│   └── system_prompt.txt    # The system prompt text
+│   ├── app.py                  # Flask API with health check
+│   ├── requirements.txt        # API dependencies
+│   └── system_prompt.txt       # System prompt for the model
+├── data/
+│   ├── training_data.txt       # Training dataset
+│   └── validation_data.txt     # Validation dataset
 ├── docker/
-│   └── Dockerfile           # Builds Docker, calls create_tiny_model.py
+│   └── Dockerfile              # Multi-stage Docker build
 ├── frontend/
-│   ├── index.html           # Chat interface
-│   └── script.js            # Basic JS to POST /generate
+│   ├── index.html              # Enhanced chat UI
+│   └── script.js               # Frontend logic
 ├── terraform/
-│   └── main.tf              # Cloud Run + IAM ephemeral infra
-├── create_tiny_model.py     # Dynamically creates model at Docker build
-└── README.md                # This file
-```
-
-**Mermaid Diagram**:
-
-```mermaid
-flowchart TB
-    A[tiny-llm-cicd/] --> A1[.github/workflows/cicd.yml]
-    A --> A2[api/]
-    A2 --> A2a[app.py]
-    A2 --> A2b[requirements.txt]
-    A2 --> A2c[system_prompt.txt]
-    A --> A3[docker/Dockerfile]
-    A --> A4[frontend/]
-    A4 --> A4a[index.html]
-    A4 --> A4b[script.js]
-    A --> A5[terraform/main.tf]
-    A --> A6[create_tiny_model.py]
+│   ├── main.tf                 # Cloud Run configuration
+│   └── variables.tf            # Terraform variables
+├── tests/
+│   ├── test_api.py             # API endpoint tests
+│   ├── test_create_tiny_model.py # Model training tests
+│   └── test_evaluate_model.py  # Evaluation tests
+├── create_tiny_model.py        # DistilGPT2 fine-tuning
+├── evaluate_model.py           # Model evaluation framework
+└── README.md                   # This documentation
 ```
 
 ---
 
 ## How It Works
 
-1. **`create_tiny_model.py`**  
-   - Runs *inside* Docker build (or locally if you prefer).  
-   - Downloads GPT-2 tokenizer from Hugging Face, sets up a “single-layer GPT-2” config, then saves weights into `/app/model`.
+### 1. Model Training (`create_tiny_model.py`)
+- Downloads pre-trained DistilGPT2 from Hugging Face
+- Fine-tunes on domain-specific data (energy/climate topics)
+- Implements learning rate scheduling and optimization
+- Saves the model for deployment
 
-2. **`Dockerfile`**  
-   - Uses a **PyTorch base image** for quick torch availability.  
-   - Installs Python deps, runs `create_tiny_model.py` inside the container.  
-   - Copies in the web app (Flask + front end).
+### 2. Model Evaluation (`evaluate_model.py`)
+- Calculates perplexity on validation dataset
+- Generates sample responses for qualitative assessment
+- Enforces quality thresholds for deployment
+- Produces detailed evaluation reports
 
-3. **`app.py`**  
-   - Loads the model from `/app/model`.  
-   - Serves a chat UI at `/`.  
-   - On `POST /generate`, it runs a quick text generation with the newly trained random GPT-2.  
+### 3. API Service (`api/app.py`)
+- Loads the fine-tuned model
+- Provides a `/generate` endpoint for text generation
+- Includes a `/health` endpoint for monitoring
+- Serves the frontend UI
 
-4. **Terraform**  
-   - Deploys the Docker image to Cloud Run, creates a service account, and grants `roles/run.invoker` to `allUsers` so it’s publicly accessible.
+### 4. Frontend (`frontend/`)
+- Modern, responsive chat interface
+- Real-time typing indicators
+- Error handling and user feedback
+- Themed for energy/sustainability
 
-5. **GitHub Actions**  
-   - **Build** → **Scan** → **Push** → **Terraform Apply** → **Wait** → **Terraform Destroy**.  
-   - Everything is ephemeral and automated.
+### 5. CI/CD Pipeline (`.github/workflows/cicd.yml`)
+- Runs linting and tests
+- Trains and evaluates the model
+- Builds, tags, and scans Docker images
+- Deploys to Cloud Run via Terraform
+
+### 6. Infrastructure (`terraform/`)
+- Parameterized Cloud Run configuration
+- Health check integration
+- Scaling and concurrency settings
+- Security and access control
 
 ---
 
 ## Local Testing
 
-1. **Install Requirements**:
+1. **Train and evaluate** the model:
 
    ```bash
-   cd api
-   pip install -r requirements.txt
-   cd ..
+   python create_tiny_model.py --output_dir=./model
+   python evaluate_model.py --model_dir=./model --validation_file=./data/validation_data.txt
    ```
 
-2. **Train** the tiny GPT-2 model locally if desired:
+2. **Run tests**:
 
    ```bash
-   python create_tiny_model.py --train --force-train
+   pytest tests/ -v
    ```
 
-   This places the model in `./model`. Typically the pipeline handles this in Docker.
-
-3. **Run** the Flask app:
+3. **Start** the Flask app:
 
    ```bash
    python api/app.py
    ```
 
-4. **Open** [http://127.0.0.1:8000](http://127.0.0.1:8000) and enjoy random GPT-2 text generation.
+4. **Open** [http://127.0.0.1:8000](http://127.0.0.1:8000) to use the chatbot
 
 ---
 
-## Enhancing `create_tiny_model.py`
+## Development Roadmap
 
-Currently, `create_tiny_model.py`:
+Future enhancements planned for this project:
 
-- Creates a **random** single-layer GPT-2 config.  
-- Downloads GPT-2’s **tokenizer** from Hugging Face.  
+### 1. Advanced Model Capabilities
+- **RAG (Retrieval-Augmented Generation)**: Integrate external knowledge sources
+- **Multi-lingual Support**: Train on multiple languages
+- **Parameter-Efficient Fine-Tuning**: Implement LoRA or other PEFT techniques
 
-**For a more realistic model**:
+### 2. Enhanced Infrastructure
+- **Multi-Region Deployment**: Deploy to multiple GCP regions
+- **Blue/Green Deployments**: Zero-downtime deployments
+- **Auto-scaling**: Based on traffic patterns
 
-1. Remove the random `GPT2Config(...)` calls.  
-2. Use `GPT2LMHeadModel.from_pretrained("distilgpt2")` (or `"gpt2"`).  
-3. Then `save_pretrained("model")` if you want the real model packaged in your Docker image.
+### 3. Monitoring & Observability
+- **Prometheus Integration**: Metrics collection
+- **Logging Pipeline**: Centralized logging
+- **Alerting**: Proactive notification of issues
 
-However, be mindful that a full GPT-2 or DistilGPT2 will significantly **increase** the container size. In production, you might store large models in a dedicated registry or fetch them at runtime, balancing cost and performance.
+### 4. Security Enhancements
+- **Input Validation**: Prevent prompt injection
+- **Rate Limiting**: Protect against abuse
+- **Authentication**: Add user authentication
+
+### 5. UI/UX Improvements
+- **Chat History**: Persistent conversations
+- **Accessibility**: WCAG compliance
+- **Mobile App**: Native mobile experience
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## Acknowledgments
+
+- Hugging Face for the Transformers library
+- Google Cloud Platform for hosting services
+- The open-source community for tools and libraries
+
+---
+
+*This project is designed as a showcase of MLOps and AI Engineering skills.*

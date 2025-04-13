@@ -52,5 +52,14 @@ def generate_text():
 
     return jsonify({"response": response_text})
 
+@app.route("/health", methods=["GET"])
+def health_check():
+    """Health check endpoint for monitoring and liveness probes"""
+    return jsonify({
+        "status": "ok",
+        "model": os.path.basename(MODEL_PATH),
+        "version": "1.0.0"
+    })
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)

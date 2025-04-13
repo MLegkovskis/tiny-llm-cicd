@@ -1,7 +1,7 @@
 """
 create_tiny_model.py
 
-Generates or trains a minimal GPT-2 model, optionally pushing/pulling
+Downloads or fine-tunes a distilgpt2 model, optionally pushing/pulling
 from a GCS bucket to skip re-training in future runs.
 
 Usage examples:
@@ -20,21 +20,20 @@ import argparse
 import subprocess
 import torch
 from torch.utils.data import Dataset, DataLoader
-from torch.nn.utils.rnn import pad_sequence
 from transformers import (
-    GPT2Config,
-    GPT2LMHeadModel,
-    GPT2TokenizerFast,
-    AdamW
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    AdamW,
+    get_linear_schedule_with_warmup
 )
 
 
-class TinyTextDataset(Dataset):
+class TextDataset(Dataset):
     """
-    A minimal dataset reading lines from a text file and tokenizing them.
+    A dataset reading lines from a text file and tokenizing them.
     """
 
-    def __init__(self, tokenizer, data_file, block_size=64):
+    def __init__(self, tokenizer, data_file, block_size=128):
         self.examples = []
         with open(data_file, "r", encoding="utf-8") as f:
             lines = f.read().strip().split("\n")
@@ -51,15 +50,6 @@ class TinyTextDataset(Dataset):
     def __getitem__(self, idx):
         # Return a 1D tensor for a single sequence
         return torch.tensor(self.examples[idx], dtype=torch.long)
-
-
-def collate_fn(batch, pad_token_id):
-    """
-    Collate function to handle variable-length sequences by padding.
-    """
-    # batch is a list of tensors, each shape [seq_len]
-    # We pad them to the max length in the batch.
-    return pad_sequence(batch, batch_first=True, padding_value=pad_token_id)
 
 
 def download_model_from_gcs(bucket_path, local_model_dir):
@@ -91,38 +81,68 @@ def upload_model_to_gcs(local_model_dir, bucket_path):
     print("Model uploaded to GCS successfully.")
 
 
-def train_tiny_model(model, tokenizer, data_file, epochs=2, batch_size=2):
+def fine_tune_model(model, tokenizer, data_file, epochs=1, batch_size=4, learning_rate=5e-5):
     """
-    Train the model on a tiny dataset with dynamic padding.
+    Fine-tune the distilgpt2 model on a dataset.
     """
     # Ensure the tokenizer has a pad token
-    if tokenizer.pad_token_id is None:
-        tokenizer.pad_token_id = tokenizer.eos_token_id
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
 
-    dataset = TinyTextDataset(tokenizer, data_file, block_size=64)
-
+    dataset = TextDataset(tokenizer, data_file, block_size=128)
+    
+    # Create DataLoader with dynamic padding
+    def collate_fn(batch):
+        # Pad sequences to the maximum length in the batch
+        max_len = max([len(item) for item in batch])
+        padded_batch = []
+        for item in batch:
+            padded = item.tolist() + [tokenizer.pad_token_id] * (max_len - len(item))
+            padded_batch.append(torch.tensor(padded))
+        return torch.stack(padded_batch)
+    
     loader = DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=True,
-        collate_fn=lambda b: collate_fn(b, tokenizer.pad_token_id)
+        collate_fn=collate_fn
     )
 
-    model.train()
-    optimizer = AdamW(model.parameters(), lr=1e-3)
+    # Set up optimizer and learning rate scheduler
+    optimizer = AdamW(model.parameters(), lr=learning_rate)
+    total_steps = len(loader) * epochs
+    scheduler = get_linear_schedule_with_warmup(
+        optimizer, 
+        num_warmup_steps=0,
+        num_training_steps=total_steps
+    )
 
+    # Training loop
+    model.train()
     for epoch in range(epochs):
+        total_loss = 0
         for step, batch in enumerate(loader):
-            # batch has shape [B, T] due to our collate_fn
-            outputs = model(input_ids=batch, labels=batch)
+            # Move batch to device (CPU in this case)
+            inputs = batch
+            
+            # Forward pass
+            outputs = model(input_ids=inputs, labels=inputs)
             loss = outputs.loss
+            total_loss += loss.item()
+            
+            # Backward pass
             loss.backward()
             optimizer.step()
+            scheduler.step()
             optimizer.zero_grad()
 
             if step % 10 == 0:
                 print(f"Epoch {epoch+1}, step {step}, loss = {loss.item()}")
-    print("Training complete.")
+        
+        avg_loss = total_loss / len(loader)
+        print(f"Epoch {epoch+1} completed. Average loss: {avg_loss:.4f}")
+    
+    print("Fine-tuning complete.")
 
 
 def main(
@@ -133,10 +153,10 @@ def main(
     model_dir: str = "/app/model",
 ):
     """
-    Entry point for creating or training a tiny GPT-2 model.
+    Entry point for downloading or fine-tuning a distilgpt2 model.
 
-    :param train: Whether to attempt training if no model found on GCS.
-    :param force_train: If True, always train even if GCS model is available.
+    :param train: Whether to attempt fine-tuning if no model found on GCS.
+    :param force_train: If True, always fine-tune even if GCS model is available.
     :param gcs_path: GCS path to pull/push model. e.g. gs://my-bucket/tiny-llm-model
     :param data_file: Path to training text file.
     :param model_dir: Where to store/load the model (default /app/model for Docker).
@@ -154,26 +174,22 @@ def main(
             print("Using existing model from GCS. Skipping training.")
             return
 
-    # If no model found or training is forced => create from scratch
-    print("No existing GCS model (or training forced). Creating GPT-2 config.")
+    # If no model found or training is forced => download distilgpt2
+    print("No existing GCS model (or training forced). Downloading distilgpt2...")
 
-    tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+    # Download the pre-trained model and tokenizer
+    tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
+    model = AutoModelForCausalLM.from_pretrained("distilgpt2")
+    
+    # Save the tokenizer first
     tokenizer.save_pretrained(model_dir)
-
-    config = GPT2Config(
-        vocab_size=tokenizer.vocab_size,
-        n_positions=256,
-        n_ctx=256,
-        n_embd=16,
-        n_layer=1,
-        n_head=1
-    )
-    model = GPT2LMHeadModel(config)
-
+    
+    # Fine-tune if requested
     if train or force_train:
-        print("Training a tiny GPT-2 model on your data ...")
-        train_tiny_model(model, tokenizer, data_file, epochs=2, batch_size=2)
+        print("Fine-tuning distilgpt2 on your data...")
+        fine_tune_model(model, tokenizer, data_file, epochs=1, batch_size=4)
 
+    # Save the model
     model.save_pretrained(model_dir)
     print(f"Model + tokenizer saved to {model_dir}")
 
@@ -186,11 +202,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--train", action="store_true",
-        help="Enable tiny training step."
+        help="Enable fine-tuning step."
     )
     parser.add_argument(
         "--force-train", action="store_true",
-        help="Always train even if a model exists on GCS."
+        help="Always fine-tune even if a model exists on GCS."
     )
     parser.add_argument(
         "--gcs-path", type=str, default="",
