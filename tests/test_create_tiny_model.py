@@ -56,6 +56,10 @@ class TestFineTuneModel(unittest.TestCase):
         """Test that fine_tune_model calls the right functions"""
         # Create mocks
         mock_model = MagicMock()
+        # Mock model.parameters() to return a non-empty list
+        mock_params = [torch.nn.Parameter(torch.randn(2, 2))]
+        mock_model.parameters.return_value = mock_params
+        
         mock_tokenizer = MagicMock()
         mock_tokenizer.pad_token = None
         mock_tokenizer.eos_token = "[EOS]"
@@ -89,7 +93,7 @@ class TestFineTuneModel(unittest.TestCase):
         self.assertEqual(mock_tokenizer.pad_token, mock_tokenizer.eos_token)
         
         # Check that the optimizer was called with the model's parameters
-        mock_optimizer.assert_called_once()
+        mock_optimizer.assert_called_once_with(mock_params, lr=1e-5)
         
         # Check that the scheduler was called
         mock_scheduler.assert_called_once()

@@ -55,7 +55,7 @@ class TestCalculatePerplexity(unittest.TestCase):
         perplexity = calculate_perplexity(mock_model, mock_tokenizer, self.temp_file.name)
         
         # Check that the perplexity is calculated correctly
-        self.assertAlmostEqual(perplexity, 7.39, places=1)
+        self.assertAlmostEqual(perplexity, torch.exp(mock_outputs.loss.item()), places=1)
         
         # Check that the tokenizer was called twice (once for each line)
         self.assertEqual(mock_tokenizer.call_count, 2)
