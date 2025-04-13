@@ -36,14 +36,14 @@ variable "container_port" {
 
 variable "min_instances" {
   description = "Minimum number of instances to keep running"
-  type        = number
-  default     = 0
+  type        = string
+  default     = "0"
 }
 
 variable "max_instances" {
   description = "Maximum number of instances to scale to"
-  type        = number
-  default     = 4
+  type        = string
+  default     = "4"
 }
 
 variable "cpu" {
