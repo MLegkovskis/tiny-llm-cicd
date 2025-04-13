@@ -87,6 +87,31 @@ jobs:
           echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
           echo "REPOSITORY=$REPOSITORY" >> $GITHUB_ENV
 
+      - name: Enable required Google Cloud APIs
+        run: |
+          echo "Enabling required Google Cloud APIs..."
+          
+          # Enable Artifact Registry API
+          gcloud services enable artifactregistry.googleapis.com --project=${{ env.PROJECT_ID }}
+          
+          # Enable Cloud Run API
+          gcloud services enable run.googleapis.com --project=${{ env.PROJECT_ID }}
+          
+          # Enable Cloud Build API
+          gcloud services enable cloudbuild.googleapis.com --project=${{ env.PROJECT_ID }}
+          
+          # Enable Container Registry API
+          gcloud services enable containerregistry.googleapis.com --project=${{ env.PROJECT_ID }}
+          
+          # Enable Cloud Storage API
+          gcloud services enable storage.googleapis.com --project=${{ env.PROJECT_ID }}
+          
+          # Wait a moment for APIs to be fully enabled
+          echo "Waiting for APIs to be fully enabled..."
+          sleep 10
+          
+          echo "APIs enabled successfully."
+
       - name: Create Artifact Registry repository
         run: |
           # Check if repository exists
