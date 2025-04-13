@@ -11,9 +11,8 @@ Usage:
 import os
 import argparse
 import torch
-import math
-import json
 from transformers import AutoModelForCausalLM, AutoTokenizer
+import json
 
 
 def calculate_perplexity(model, tokenizer, validation_file, max_length=128):
@@ -50,7 +49,7 @@ def calculate_perplexity(model, tokenizer, validation_file, max_length=128):
     
     # Calculate perplexity
     avg_loss = total_loss / total_tokens
-    perplexity = math.exp(avg_loss)
+    perplexity = torch.exp(avg_loss)
     
     print(f"Evaluation on {len(validation_texts)} samples:")
     print(f"Average Loss: {avg_loss:.4f}")
@@ -130,10 +129,10 @@ def main(model_dir, validation_file, output_file=None, perplexity_threshold=1000
     
     # Prepare evaluation results
     evaluation_results = {
-        "perplexity": perplexity,
+        "perplexity": perplexity.item(),
         "perplexity_threshold": perplexity_threshold,
         "sample_generations": samples,
-        "evaluation_passed": perplexity <= perplexity_threshold
+        "evaluation_passed": perplexity.item() <= perplexity_threshold
     }
     
     # Save results if output file is specified
@@ -143,11 +142,11 @@ def main(model_dir, validation_file, output_file=None, perplexity_threshold=1000
         print(f"Evaluation results saved to {output_file}")
     
     # Check if evaluation passes
-    if perplexity <= perplexity_threshold:
-        print(f"\nEvaluation PASSED: Perplexity {perplexity:.4f} <= {perplexity_threshold}")
+    if perplexity.item() <= perplexity_threshold:
+        print(f"\nEvaluation PASSED: Perplexity {perplexity.item():.4f} <= {perplexity_threshold}")
         return True
     else:
-        print(f"\nEvaluation FAILED: Perplexity {perplexity:.4f} > {perplexity_threshold}")
+        print(f"\nEvaluation FAILED: Perplexity {perplexity.item():.4f} > {perplexity_threshold}")
         return False
 
 
