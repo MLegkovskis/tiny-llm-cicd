@@ -73,6 +73,47 @@ jobs:
             echo "Bucket gs://$BUCKET_NAME already exists."
           fi
 
+      - name: Set environment variables
+        run: |
+          echo "REGION=europe-west2" >> $GITHUB_ENV
+          echo "PROJECT_ID=aiops-bone-zone" >> $GITHUB_ENV
+          echo "REPOSITORY=tiny-llm-app" >> $GITHUB_ENV
+
+      - name: Create Artifact Registry repository
+        run: |
+          # Check if repository exists
+          if ! gcloud artifacts repositories describe ${{ env.REPOSITORY }} \
+            --location=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} &>/dev/null; then
+            
+            echo "Creating Artifact Registry repository ${{ env.REPOSITORY }}..."
+            gcloud artifacts repositories create ${{ env.REPOSITORY }} \
+              --repository-format=docker \
+              --location=${{ env.REGION }} \
+              --project=${{ env.PROJECT_ID }} \
+              --description="Repository for tiny-llm-app Docker images"
+            
+            echo "Repository created successfully."
+          else
+            echo "Repository ${{ env.REPOSITORY }} already exists."
+          fi
+          
+          # Grant permissions to the service account
+          SERVICE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+          echo "Using service account: $SERVICE_ACCOUNT"
+          
+          # Grant artifact registry admin role to the service account
+          gcloud projects add-iam-policy-binding ${{ env.PROJECT_ID }} \
+            --member="serviceAccount:$SERVICE_ACCOUNT" \
+            --role="roles/artifactregistry.admin"
+            
+          # Grant storage admin role to the service account (for GCS operations)
+          gcloud projects add-iam-policy-binding ${{ env.PROJECT_ID }} \
+            --member="serviceAccount:$SERVICE_ACCOUNT" \
+            --role="roles/storage.admin"
+            
+          echo "IAM permissions granted successfully."
+
       - name: Train Model (or Skip if found in GCS)
         run: |
           python create_tiny_model.py \
@@ -121,12 +162,15 @@ jobs:
           version: 'latest'
       
       - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker europe-west2-docker.pkg.dev
+        run: |
+          # Use environment variables from the previous job
+          echo "Using repository: ${{ env.REPOSITORY }} in region: ${{ env.REGION }} and project: ${{ env.PROJECT_ID }}"
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build Docker image
         run: |
           docker build \
-            -t europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest \
             -f docker/Dockerfile .
 
       # Prune any unused docker resources to reclaim space
@@ -152,7 +196,7 @@ jobs:
             --ignorefile .trivyignore \
             --severity CRITICAL \
             --exit-code 1 \
-            europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest
 
   # 3.5. Docker Push
   docker-push:
@@ -183,20 +227,23 @@ jobs:
           version: 'latest'
 
       - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker europe-west2-docker.pkg.dev
+        run: |
+          # Use environment variables from the previous job
+          echo "Using repository: ${{ env.REPOSITORY }} in region: ${{ env.REGION }} and project: ${{ env.PROJECT_ID }}"
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       # We don't care if we re-pull or re-build
       # Minimal approach: re-build from scratch
       - name: Build Docker image (again)
         run: |
           docker build \
-            -t europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest \
             -f docker/Dockerfile .
 
       - name: Push Docker image
         run: |
           docker push \
-            europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest
 
   # 4. Terraform Apply, Wait, and Destroy in one job
   ephemeral-environment:
