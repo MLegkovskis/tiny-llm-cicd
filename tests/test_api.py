@@ -9,9 +9,16 @@ import unittest
 from unittest.mock import patch, MagicMock
 import torch
 
-# Add the parent directory to the path so we can import the app
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from api.app import app
+# Mock the model loading before importing the app
+with patch('transformers.AutoTokenizer.from_pretrained') as mock_tokenizer, \
+     patch('transformers.AutoModelForCausalLM.from_pretrained') as mock_model:
+    # Set up mocks
+    mock_tokenizer.return_value = MagicMock()
+    mock_model.return_value = MagicMock()
+    
+    # Add the parent directory to the path so we can import the app
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from api.app import app
 
 
 class TestAPI(unittest.TestCase):
