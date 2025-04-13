@@ -1,0 +1,7 @@
+[flake8]
+max-line-length = 100
+exclude = .git,__pycache__,build,dist
+ignore = W293,E402
+per-file-ignores =
+    tests/*:E402,F401
+    */tests/*:E402,F401

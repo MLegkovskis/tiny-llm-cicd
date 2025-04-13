@@ -3,16 +3,20 @@ from flask import Flask, request, jsonify, send_from_directory
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 
+
 FRONTEND_FOLDER = os.path.join(os.path.dirname(__file__), "..", "frontend")
 app = Flask(__name__, static_folder=FRONTEND_FOLDER)
+
 
 @app.route("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
 
+
 @app.route("/<path:filename>")
 def frontend_static(filename):
     return send_from_directory(app.static_folder, filename)
+
 
 # system_prompt is still loaded from /app/api/system_prompt.txt
 SYSTEM_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "system_prompt.txt")
@@ -23,6 +27,7 @@ with open(SYSTEM_PROMPT_PATH, "r") as f:
 MODEL_PATH = "/app/model"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
 model = AutoModelForCausalLM.from_pretrained(MODEL_PATH)
+
 
 @app.route("/generate", methods=["POST"])
 def generate_text():
@@ -52,6 +57,7 @@ def generate_text():
 
     return jsonify({"response": response_text})
 
+
 @app.route("/health", methods=["GET"])
 def health_check():
     """Health check endpoint for monitoring and liveness probes"""
@@ -60,6 +66,7 @@ def health_check():
         "model": os.path.basename(MODEL_PATH),
         "version": "1.0.0"
     })
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
