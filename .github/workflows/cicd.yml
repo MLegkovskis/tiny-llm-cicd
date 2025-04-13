@@ -220,6 +220,13 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
+      - name: Set environment variables
+        run: |
+          echo "REGION=$REGION" >> $GITHUB_ENV
+          echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
+          echo "REPOSITORY=$REPOSITORY" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
       - name: Download Model Artifact
         uses: actions/download-artifact@v4
         with:
@@ -248,6 +255,7 @@ jobs:
 
       - name: Build Docker image
         run: |
+          echo "Building Docker image with tag: ${{ env.IMAGE_TAG }}"
           docker build \
             -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }} \
             -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest \
@@ -289,39 +297,10 @@ jobs:
             --exit-code 1 \
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
 
-  # 3.5. Docker Push
-  docker-push:
-    runs-on: ubuntu-latest
-    needs: [build-docker]
-    env:
-      REGION: europe-west2
-      PROJECT_ID: tiny-llm-cicd
-      REPOSITORY: tiny-llm-app
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          version: 'latest'
-
-      - name: Verify Docker image in Artifact Registry
-        run: |
-          echo "Verifying image exists in Artifact Registry..."
-          gcloud artifacts docker images list ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }} \
-            --include-tags \
-            --format="value(package,version)" | grep ${{ env.IMAGE_TAG }} || echo "Image not found, but continuing anyway as it may be a first-time run"
-
   # 4. Terraform Apply, Wait, and Destroy in one job
   ephemeral-environment:
     runs-on: ubuntu-latest
-    needs: [docker-push]
+    needs: [build-docker]
     env:
       REGION: europe-west2
       PROJECT_ID: tiny-llm-cicd

@@ -214,6 +214,30 @@ This project demonstrates several MLOps best practices:
 
 ---
 
+## Docker Build
+
+To build the Docker image locally:
+
+```bash
+# Build with latest tag
+docker build -t europe-west2-docker.pkg.dev/tiny-llm-cicd/tiny-llm-app/tiny-llm-app:latest .
+
+# Or build with Git SHA tag
+docker build -t europe-west2-docker.pkg.dev/tiny-llm-cicd/tiny-llm-app/tiny-llm-app:$(git rev-parse --short HEAD) .
+```
+
+To push to Google Artifact Registry:
+
+```bash
+# Authenticate to Google Cloud
+gcloud auth configure-docker europe-west2-docker.pkg.dev
+
+# Push the image
+docker push europe-west2-docker.pkg.dev/tiny-llm-cicd/tiny-llm-app/tiny-llm-app:latest
+```
+
+---
+
 ## Repository Structure
 
 ```
