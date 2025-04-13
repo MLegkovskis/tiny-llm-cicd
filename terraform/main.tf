@@ -9,7 +9,7 @@ terraform {
 }
 
 provider "google" {
-  project = "aiops-bone-zone"
+  project = "tiny-llm-cicd"
   region  = "europe-west2"
 }
 
@@ -26,7 +26,7 @@ resource "google_cloud_run_service" "tiny_llm_service" {
     spec {
       service_account_name = google_service_account.service.email
       containers {
-        image = "europe-west2-docker.pkg.dev/aiops-bone-zone/tiny-llm-app/tiny-llm-app:latest"
+        image = "europe-west2-docker.pkg.dev/tiny-llm-cicd/tiny-llm-app/tiny-llm-app:latest"
         ports {
           name           = "http1"
           container_port = 8000
@@ -40,7 +40,7 @@ resource "google_cloud_run_service" "tiny_llm_service" {
 # Allow unauthenticated
 resource "google_cloud_run_service_iam_member" "noauth" {
   location = "europe-west2"
-  project  = "aiops-bone-zone"
+  project  = "tiny-llm-cicd"
   service  = google_cloud_run_service.tiny_llm_service.name
   role     = "roles/run.invoker"
   member   = "allUsers"
