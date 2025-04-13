@@ -95,7 +95,7 @@ Even though the model is **random**, the pipeline is entirely **real**—perfect
    - Add a secret named `GCP_SA_KEY` containing the JSON credentials for that service account.  
    - The pipeline references it for authentication.
 
-3. **Local Tools (Optional)**  
+3. **Local Tools**  
    - If you want to test everything locally: Python 3.9+, `pip install -r api/requirements.txt`.
 
 ---
