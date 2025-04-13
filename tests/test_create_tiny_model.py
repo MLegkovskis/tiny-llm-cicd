@@ -83,11 +83,16 @@ class TestFineTuneModel(unittest.TestCase):
         
         # Mock the model's forward pass
         mock_outputs = MagicMock()
-        mock_outputs.loss = torch.tensor(0.5)
+        mock_loss = MagicMock()
+        mock_loss.item.return_value = 0.5
+        # Make the loss have a backward method to avoid the actual backward pass
+        mock_loss.backward = MagicMock()
+        mock_outputs.loss = mock_loss
         mock_model.return_value = mock_outputs
         
-        # Call the function
-        fine_tune_model(mock_model, mock_tokenizer, temp_file.name, epochs=1, batch_size=2)
+        # Call the function with a patch to avoid the backward pass
+        with patch('torch.Tensor.backward', MagicMock()):
+            fine_tune_model(mock_model, mock_tokenizer, temp_file.name, epochs=1, batch_size=2)
         
         # Check that the tokenizer's pad_token was set
         self.assertEqual(mock_tokenizer.pad_token, mock_tokenizer.eos_token)
