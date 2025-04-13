@@ -204,6 +204,7 @@ if __name__ == "__main__":
         "--model-dir", type=str, default="/app/model",
         help="Where to store/load the model. Use a local path if not in Docker."
     )
+
     args = parser.parse_args()
 
     main(

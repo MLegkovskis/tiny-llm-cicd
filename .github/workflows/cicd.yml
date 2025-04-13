@@ -51,11 +51,27 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
+          # Explicitly request storage.admin scope for bucket creation
+          scopes: 'https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/devstorage.full_control'
 
       - name: Set up gcloud (Optional if using GCS)
         uses: google-github-actions/setup-gcloud@v2
         with:
           version: 'latest'
+
+      - name: Create GCS bucket if it doesn't exist
+        run: |
+          # Extract bucket name from the GCS path
+          BUCKET_NAME="tiny-llm-model"
+          
+          # Check if bucket exists
+          if ! gsutil ls -b gs://$BUCKET_NAME &>/dev/null; then
+            echo "Creating bucket gs://$BUCKET_NAME..."
+            gsutil mb gs://$BUCKET_NAME
+            echo "Bucket created successfully."
+          else
+            echo "Bucket gs://$BUCKET_NAME already exists."
+          fi
 
       - name: Train Model (or Skip if found in GCS)
         run: |
