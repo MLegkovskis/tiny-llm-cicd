@@ -98,7 +98,7 @@ class TestFineTuneModel(unittest.TestCase):
         self.assertEqual(mock_tokenizer.pad_token, mock_tokenizer.eos_token)
         
         # Check that the optimizer was called with the model's parameters
-        mock_optimizer.assert_called_once_with(mock_params, lr=1e-5)
+        mock_optimizer.assert_called_once_with(mock_params, lr=5e-5)
         
         # Check that the scheduler was called
         mock_scheduler.assert_called_once()
