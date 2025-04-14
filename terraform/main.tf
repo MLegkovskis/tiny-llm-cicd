@@ -15,25 +15,22 @@ provider "google" {
 
 # The rest of the variables are defined in variables.tf
 
-# Check if the service account already exists
-data "google_service_account" "existing" {
-  account_id = var.service_account_name
-  project    = var.project_id
-  # This will fail if the service account doesn't exist, which is fine
-  # Terraform will handle this gracefully
+# Delete service account if it exists
+resource "null_resource" "delete_service_account" {
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Attempting to delete service account ${var.service_account_name}@${var.project_id}.iam.gserviceaccount.com if it exists..."
+      gcloud iam service-accounts delete ${var.service_account_name}@${var.project_id}.iam.gserviceaccount.com --quiet || echo "Service account doesn't exist or couldn't be deleted, continuing anyway..."
+    EOT
+  }
 }
 
-# Local variable to determine if we need to create a new service account
-locals {
-  service_account_exists = can(data.google_service_account.existing.email)
-  service_account_email = local.service_account_exists ? data.google_service_account.existing.email : google_service_account.service[0].email
-}
-
-# Create service account only if it doesn't exist
 resource "google_service_account" "service" {
-  count        = local.service_account_exists ? 0 : 1
   account_id   = var.service_account_name
   display_name = "Cloud Run Execution SA"
+  
+  # Make sure the deletion happens before creation
+  depends_on = [null_resource.delete_service_account]
 }
 
 resource "google_cloud_run_service" "tiny_llm_service" {
@@ -42,7 +39,7 @@ resource "google_cloud_run_service" "tiny_llm_service" {
 
   template {
     spec {
-      service_account_name = local.service_account_email
+      service_account_name = google_service_account.service.email
       containers {
         image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.repository}/${var.repository}:${var.image_tag}"
         
