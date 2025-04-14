@@ -25,16 +25,20 @@ class TestTextDataset(unittest.TestCase):
         self.temp_file.write("This is a test sentence.\nThis is another test sentence.")
         self.temp_file.close()
         
-        # Create a tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
-        
     def tearDown(self):
         # Remove the temporary file
         os.unlink(self.temp_file.name)
         
-    def test_dataset_initialization(self):
+    @patch('transformers.AutoTokenizer.from_pretrained')
+    def test_dataset_initialization(self, mock_tokenizer):
         """Test that the dataset is initialized correctly"""
-        dataset = TextDataset(self.tokenizer, self.temp_file.name)
+        # Create a mock tokenizer
+        mock_tokenizer_instance = MagicMock()
+        mock_tokenizer_instance.encode.side_effect = lambda text, truncation, max_length: [1, 2, 3, 4, 5]
+        mock_tokenizer.return_value = mock_tokenizer_instance
+        
+        # Create the dataset with the mock tokenizer
+        dataset = TextDataset(mock_tokenizer_instance, self.temp_file.name)
         
         # Check that the dataset has the correct number of examples
         self.assertEqual(len(dataset), 2)
@@ -44,6 +48,9 @@ class TestTextDataset(unittest.TestCase):
         
         # Check that the tensors have the correct data type
         self.assertEqual(dataset[0].dtype, torch.long)
+        
+        # Verify the tokenizer was called for each line
+        self.assertEqual(mock_tokenizer_instance.encode.call_count, 2)
 
 
 class TestFineTuneModel(unittest.TestCase):
@@ -159,14 +166,27 @@ class TestMain(unittest.TestCase):
         """Test main function when GCS download fails and training is enabled"""
         # Set up mocks
         mock_download.return_value = False
-        mock_tokenizer.return_value = MagicMock()
-        mock_model.return_value = MagicMock()
+        
+        # Create mock tokenizer and model
+        mock_tokenizer_instance = MagicMock()
+        mock_tokenizer_instance.pad_token = None
+        mock_tokenizer_instance.eos_token = "[EOS]"
+        mock_tokenizer.return_value = mock_tokenizer_instance
+        
+        mock_model_instance = MagicMock()
+        mock_model_instance.config = MagicMock()
+        mock_model.return_value = mock_model_instance
         
         # Create a temporary directory
         with tempfile.TemporaryDirectory() as temp_dir:
+            # Create a temporary data file
+            temp_file = tempfile.NamedTemporaryFile(delete=False, mode='w')
+            temp_file.write("This is a test sentence.\nThis is another test sentence.")
+            temp_file.close()
+            
             # Call the function
             main(train=True, force_train=False, gcs_path="gs://bucket/path", 
-                 data_file="data.txt", model_dir=temp_dir)
+                 data_file=temp_file.name, model_dir=temp_dir)
             
             # Check that download was called
             mock_download.assert_called_once_with("gs://bucket/path", temp_dir)
@@ -180,6 +200,9 @@ class TestMain(unittest.TestCase):
             
             # Check that upload was called
             mock_upload.assert_called_once_with(temp_dir, "gs://bucket/path")
+            
+            # Clean up
+            os.unlink(temp_file.name)
 
 
 if __name__ == '__main__':
