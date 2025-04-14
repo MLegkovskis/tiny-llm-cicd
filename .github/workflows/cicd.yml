@@ -251,14 +251,14 @@ jobs:
         run: |
           # Use environment variables from the previous job
           echo "Using repository: ${{ env.REPOSITORY }} in region: ${{ env.REGION }} and project: ${{ env.PROJECT_ID }}"
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+          gcloud auth configure-docker gcr.io --quiet
 
       - name: Build Docker image
         run: |
           echo "Building Docker image with tag: ${{ env.IMAGE_TAG }}"
           docker build \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }} \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest \
+            -t gcr.io/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }} \
+            -t gcr.io/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}:latest \
             -f docker/Dockerfile .
           
           # Verify the image was built successfully
@@ -268,8 +268,8 @@ jobs:
       - name: Push Docker image to Artifact Registry
         run: |
           echo "Pushing Docker image to Artifact Registry..."
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:latest
+          docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
+          docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}:latest
           echo "Image pushed successfully."
 
       - name: Prune Docker
@@ -295,7 +295,7 @@ jobs:
             --ignorefile .trivyignore \
             --severity CRITICAL \
             --exit-code 1 \
-            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
+            gcr.io/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
 
   # 4. Terraform Apply, Wait, and Destroy in one job
   ephemeral-environment:

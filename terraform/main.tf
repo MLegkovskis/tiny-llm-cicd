@@ -28,7 +28,7 @@ resource "google_cloud_run_service" "tiny_llm_service" {
     spec {
       service_account_name = google_service_account.service.email
       containers {
-        image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.repository}/${var.repository}:${var.image_tag}"
+        image = "gcr.io/${var.project_id}/${var.repository}:${var.image_tag}"
         
         ports {
           name           = "http1"
