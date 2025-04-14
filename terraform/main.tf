@@ -15,22 +15,9 @@ provider "google" {
 
 # The rest of the variables are defined in variables.tf
 
-# Delete service account if it exists
-resource "null_resource" "delete_service_account" {
-  provisioner "local-exec" {
-    command = <<-EOT
-      echo "Attempting to delete service account ${var.service_account_name}@${var.project_id}.iam.gserviceaccount.com if it exists..."
-      gcloud iam service-accounts delete ${var.service_account_name}@${var.project_id}.iam.gserviceaccount.com --quiet || echo "Service account doesn't exist or couldn't be deleted, continuing anyway..."
-    EOT
-  }
-}
-
 resource "google_service_account" "service" {
   account_id   = var.service_account_name
   display_name = "Cloud Run Execution SA"
-  
-  # Make sure the deletion happens before creation
-  depends_on = [null_resource.delete_service_account]
 }
 
 resource "google_cloud_run_service" "tiny_llm_service" {
