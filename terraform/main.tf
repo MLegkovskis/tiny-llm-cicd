@@ -33,6 +33,12 @@ variable "service_name" {
   default     = "tiny-llm-service"
 }
 
+variable "image_tag" {
+  description = "The Docker image tag to deploy"
+  type        = string
+  default     = "latest"
+}
+
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -51,8 +57,8 @@ resource "google_cloud_run_service" "tiny_llm_service" {
     spec {
       service_account_name = google_service_account.service.email
       containers {
-        # Use a simple, hardcoded image path
-        image = "gcr.io/tiny-llm-cicd/tiny-llm-app:latest"
+        # Use the image_tag variable
+        image = "gcr.io/tiny-llm-cicd/tiny-llm-app:${var.image_tag}"
         
         ports {
           name           = "http1"
