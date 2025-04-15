@@ -8,12 +8,35 @@ terraform {
   }
 }
 
+# Define all variables directly in this file
+variable "project_id" {
+  description = "The GCP project ID"
+  type        = string
+  default     = "tiny-llm-cicd"
+}
+
+variable "region" {
+  description = "The GCP region to deploy resources to"
+  type        = string
+  default     = "europe-west2"
+}
+
+variable "service_account_name" {
+  description = "The name of the service account for Cloud Run"
+  type        = string
+  default     = "cloud-run-exec"
+}
+
+variable "service_name" {
+  description = "The name of the Cloud Run service"
+  type        = string
+  default     = "tiny-llm-service"
+}
+
 provider "google" {
   project = var.project_id
   region  = var.region
 }
-
-# The rest of the variables are defined in variables.tf
 
 resource "google_service_account" "service" {
   account_id   = var.service_account_name
@@ -28,17 +51,18 @@ resource "google_cloud_run_service" "tiny_llm_service" {
     spec {
       service_account_name = google_service_account.service.email
       containers {
-        image = "gcr.io/${var.project_id}/${var.repository}:${var.image_tag}"
+        # Use a simple, hardcoded image path
+        image = "gcr.io/tiny-llm-cicd/tiny-llm-app:latest"
         
         ports {
           name           = "http1"
-          container_port = var.container_port
+          container_port = 8000
         }
         
         resources {
           limits = {
-            cpu    = var.cpu
-            memory = var.memory
+            cpu    = "1"
+            memory = "2Gi"
           }
         }
         
@@ -64,50 +88,34 @@ resource "google_cloud_run_service" "tiny_llm_service" {
         }
       }
       
-      # Set container concurrency and timeout
-      container_concurrency = 80
-      timeout_seconds       = var.timeout_seconds
+      timeout_seconds = 300
     }
     
     metadata {
       annotations = {
-        "autoscaling.knative.dev/minScale" = var.min_instances
-        "autoscaling.knative.dev/maxScale" = var.max_instances
+        "autoscaling.knative.dev/minScale" = "0"
+        "autoscaling.knative.dev/maxScale" = "4"
       }
     }
   }
   
-  autogenerate_revision_name = true
-  
-  # Define traffic routing
   traffic {
     percent         = 100
     latest_revision = true
   }
+  
+  autogenerate_revision_name = true
 }
 
-# Allow unauthenticated access if specified
-resource "google_cloud_run_service_iam_member" "noauth" {
-  count    = var.allow_unauthenticated ? 1 : 0
-  location = var.region
-  project  = var.project_id
+# IAM policy to allow unauthenticated access to the service
+resource "google_cloud_run_service_iam_member" "public" {
   service  = google_cloud_run_service.tiny_llm_service.name
+  location = google_cloud_run_service.tiny_llm_service.location
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
 
-output "cloud_run_url" {
+# Output the service URL
+output "service_url" {
   value = google_cloud_run_service.tiny_llm_service.status[0].url
-}
-
-output "service_name" {
-  value = google_cloud_run_service.tiny_llm_service.name
-}
-
-output "region" {
-  value = var.region
-}
-
-output "project_id" {
-  value = var.project_id
 }
