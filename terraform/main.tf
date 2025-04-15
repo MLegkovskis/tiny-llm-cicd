@@ -21,6 +21,12 @@ variable "region" {
   default     = "europe-west2"
 }
 
+variable "image_tag" {
+  description = "Docker image tag (not used in this simplified config, but required by CI/CD)"
+  type        = string
+  default     = "latest"
+}
+
 # Provider configuration
 provider "google" {
   project = var.project_id
