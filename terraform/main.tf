@@ -1,82 +1,104 @@
 terraform {
-  required_version = ">= 1.0.0"
+  required_version = ">= 1.4.0"
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 4.0.0"
+      version = ">= 4.0"
     }
   }
 }
 
-# Simple variables
-variable "project_id" {
-  description = "GCP Project ID"
-  type        = string
-  default     = "tiny-llm-cicd"
+provider "google" {
+  project = "tiny-llm-cicd"
+  region  = "europe-west2"
 }
 
-variable "region" {
-  description = "GCP Region"
-  type        = string
-  default     = "europe-west2"
-}
-
+# Add this variable to support the CI/CD workflow
 variable "image_tag" {
-  description = "Docker image tag (not used in this simplified config, but required by CI/CD)"
+  description = "The Docker image tag to deploy"
   type        = string
   default     = "latest"
 }
 
-# Provider configuration
-provider "google" {
-  project = var.project_id
-  region  = var.region
+resource "google_service_account" "service" {
+  account_id   = "cloud-run-exec"
+  display_name = "Cloud Run Execution SA"
 }
 
-# Create a simple Cloud Run service with a public image
-resource "google_cloud_run_service" "default" {
+resource "google_cloud_run_service" "tiny_llm_service" {
   name     = "tiny-llm-service"
-  location = var.region
+  location = "europe-west2"
 
   template {
     spec {
+      service_account_name = google_service_account.service.email
       containers {
-        # Using our custom image with the image_tag variable
-        image = "gcr.io/${var.project_id}/tiny-llm-app:${var.image_tag}"
+        image = "europe-west2-docker.pkg.dev/tiny-llm-cicd/tiny-llm-app/tiny-llm-app:${var.image_tag}"
         
         ports {
+          name           = "http1"
           container_port = 8000
         }
+        
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "2Gi"
+          }
+        }
+        
+        # Add health checks
+        liveness_probe {
+          http_get {
+            path = "/health"
+          }
+          initial_delay_seconds = 10
+          timeout_seconds       = 5
+          period_seconds        = 15
+          failure_threshold     = 3
+        }
+        
+        startup_probe {
+          http_get {
+            path = "/health"
+          }
+          initial_delay_seconds = 5
+          timeout_seconds       = 5
+          period_seconds        = 5
+          failure_threshold     = 12  # Allow 60 seconds for startup (12 * 5s)
+        }
+      }
+      
+      # Set container concurrency and timeout
+      container_concurrency = 80
+      timeout_seconds       = 300
+    }
+    
+    metadata {
+      annotations = {
+        "autoscaling.knative.dev/minScale" = "0"
+        "autoscaling.knative.dev/maxScale" = "4"
       }
     }
   }
-
-  # Make the service public
-  metadata {
-    annotations = {
-      "run.googleapis.com/ingress" = "all"
-    }
+  
+  traffic {
+    percent         = 100
+    latest_revision = true
   }
+  
+  autogenerate_revision_name = true
 }
 
-# Allow public access
-data "google_iam_policy" "noauth" {
-  binding {
-    role = "roles/run.invoker"
-    members = [
-      "allUsers",
-    ]
-  }
+# Allow unauthenticated
+resource "google_cloud_run_service_iam_member" "noauth" {
+  location = "europe-west2"
+  project  = "tiny-llm-cicd"
+  service  = google_cloud_run_service.tiny_llm_service.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
 }
 
-resource "google_cloud_run_service_iam_policy" "noauth" {
-  location    = google_cloud_run_service.default.location
-  project     = google_cloud_run_service.default.project
-  service     = google_cloud_run_service.default.name
-  policy_data = data.google_iam_policy.noauth.policy_data
-}
-
-# Output the service URL
-output "url" {
-  value = google_cloud_run_service.default.status[0].url
+output "cloud_run_url" {
+  value = google_cloud_run_service.tiny_llm_service.status[0].url
 }
