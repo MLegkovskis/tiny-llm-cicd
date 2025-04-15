@@ -41,8 +41,12 @@ resource "google_cloud_run_service" "default" {
   template {
     spec {
       containers {
-        # Using a known public image that definitely works
-        image = "us-docker.pkg.dev/cloudrun/container/hello"
+        # Using our custom image with the image_tag variable
+        image = "gcr.io/${var.project_id}/tiny-llm-app:${var.image_tag}"
+        
+        ports {
+          container_port = 8000
+        }
       }
     }
   }
