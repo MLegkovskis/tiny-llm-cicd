@@ -1,9 +1,3 @@
-# Tiny LLM CICD Demo :rocket:
-
-> A fully automated, **ephemeral** LLM chatbot project that dynamically **builds** a tiny GPT-2–style model at Docker **build time**, deploys it to **Google Cloud Run** with a **GitHub Actions** pipeline, and tears it all down automatically.
-
----
-
 ## Table of Contents
 
 1. [Overview](#overview)  
